@@ -31,7 +31,7 @@ struct FileRowView: View {
                 Image(nsImage: item.icon)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 18, height: 18)
+                    .frame(width: 16, height: 16)
 
                 Text(item.name)
                     .lineLimit(1)

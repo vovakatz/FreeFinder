@@ -74,7 +74,7 @@ struct FileListView: View {
                 }
                 .listStyle(.plain)
                 .alternatingRowBackgrounds()
-                .environment(\.defaultMinListRowHeight, 22)
+                .environment(\.defaultMinListRowHeight, 14)
                 .onHover { doubleClickProxy.isHovered = $0 }
                 .onAppear { doubleClickProxy.startMonitoring() }
                 .onDisappear { doubleClickProxy.stopMonitoring() }
