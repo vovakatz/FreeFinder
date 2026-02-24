@@ -2,24 +2,26 @@ import SwiftUI
 import AppKit
 
 struct FileListView: View {
-    let items: [FileItem]
+    let displayItems: [DisplayItem]
     let sortCriteria: SortCriteria
     let isLoading: Bool
     let errorMessage: String?
+    let expandedFolders: Set<URL>
     let onSort: (SortField) -> Void
     let onOpen: (FileItem) -> Void
+    let onToggleExpand: (FileItem) -> Void
 
-    @State private var selection: Set<FileItem.ID> = []
+    @Binding var selection: Set<FileItem.ID>
     @State private var dateWidth: CGFloat = 150
     @State private var sizeWidth: CGFloat = 80
     @State private var kindWidth: CGFloat = 120
     @State private var doubleClickProxy = DoubleClickProxy()
 
     var body: some View {
-        let _ = doubleClickProxy.updateAction { [selection, items, onOpen] in
+        let _ = doubleClickProxy.updateAction { [selection, displayItems, onOpen] in
             guard let selectedURL = selection.first,
-                  let item = items.first(where: { $0.id == selectedURL }) else { return }
-            onOpen(item)
+                  let displayItem = displayItems.first(where: { $0.id == selectedURL }) else { return }
+            onOpen(displayItem.fileItem)
         }
 
         VStack(spacing: 0) {
@@ -46,7 +48,7 @@ struct FileListView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-            } else if items.isEmpty {
+            } else if displayItems.isEmpty {
                 Spacer()
                 VStack(spacing: 8) {
                     Image(systemName: "folder")
@@ -57,19 +59,22 @@ struct FileListView: View {
                 }
                 Spacer()
             } else {
-                List(items, selection: $selection) { item in
+                List(displayItems, selection: $selection) { displayItem in
                     FileRowView(
-                        item: item,
+                        item: displayItem.fileItem,
                         dateWidth: dateWidth,
                         sizeWidth: sizeWidth,
-                        kindWidth: kindWidth
+                        kindWidth: kindWidth,
+                        depth: displayItem.depth,
+                        isExpanded: expandedFolders.contains(displayItem.fileItem.url),
+                        onToggleExpand: { onToggleExpand(displayItem.fileItem) }
                     )
-                    .draggable(item.url)
-                    .tag(item.id)
+                    .draggable(displayItem.fileItem.url)
+                    .tag(displayItem.id)
                 }
                 .listStyle(.plain)
                 .alternatingRowBackgrounds()
-                .environment(\.defaultMinListRowHeight, 24)
+                .environment(\.defaultMinListRowHeight, 22)
                 .onHover { doubleClickProxy.isHovered = $0 }
                 .onAppear { doubleClickProxy.startMonitoring() }
                 .onDisappear { doubleClickProxy.stopMonitoring() }
@@ -78,10 +83,10 @@ struct FileListView: View {
                     return .handled
                 }
                 .contextMenu {
-                    if let selectedItem = items.first(where: { selection.contains($0.id) }) {
-                        Button("Open") { onOpen(selectedItem) }
+                    if let selectedDisplay = displayItems.first(where: { selection.contains($0.id) }) {
+                        Button("Open") { onOpen(selectedDisplay.fileItem) }
                         Button("Show in Finder") {
-                            NSWorkspace.shared.activateFileViewerSelecting([selectedItem.url])
+                            NSWorkspace.shared.activateFileViewerSelecting([selectedDisplay.fileItem.url])
                         }
                     }
                 }
@@ -91,8 +96,8 @@ struct FileListView: View {
 
     private func openSelected() {
         guard let selectedURL = selection.first,
-              let item = items.first(where: { $0.id == selectedURL }) else { return }
-        onOpen(item)
+              let displayItem = displayItems.first(where: { $0.id == selectedURL }) else { return }
+        onOpen(displayItem.fileItem)
     }
 }
 

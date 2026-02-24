@@ -6,7 +6,7 @@ struct SidebarView: View {
 
     var body: some View {
         List(selection: $selection) {
-            Section("Favorites") {
+            Section(header: Text("Favorites").fontWeight(.bold)) {
                 ForEach(viewModel.favorites) { item in
                     Label(item.name, systemImage: item.icon)
                         .tag(item.url)
@@ -23,7 +23,7 @@ struct SidebarView: View {
                 }
             }
 
-            Section("Volumes") {
+            Section(header: Text("Volumes").fontWeight(.bold)) {
                 ForEach(viewModel.volumes) { item in
                     Label(item.name, systemImage: item.icon)
                         .tag(item.url)
@@ -31,5 +31,7 @@ struct SidebarView: View {
             }
         }
         .listStyle(.sidebar)
+        .scrollContentBackground(.hidden)
+        .background(Color.black.opacity(0.15))
     }
 }

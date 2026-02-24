@@ -60,7 +60,7 @@ struct ColumnHeaderView: View {
             )
             .contentShape(Rectangle())
             .gesture(
-                DragGesture(minimumDistance: 1)
+                DragGesture(minimumDistance: 1, coordinateSpace: .global)
                     .onChanged { value in
                         if startWidths == nil {
                             startWidths = (dateWidth, sizeWidth, kindWidth)

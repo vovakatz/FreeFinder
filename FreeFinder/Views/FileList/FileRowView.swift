@@ -5,10 +5,29 @@ struct FileRowView: View {
     let dateWidth: CGFloat
     let sizeWidth: CGFloat
     let kindWidth: CGFloat
+    var depth: Int = 0
+    var isExpanded: Bool = false
+    var onToggleExpand: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 0) {
             HStack(spacing: 6) {
+                if item.isDirectory {
+                    Button { onToggleExpand?() } label: {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                            .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                            .animation(.easeInOut(duration: 0.15), value: isExpanded)
+                            .frame(minWidth: 16, maxWidth: 16, maxHeight: .infinity)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .frame(minWidth: 16, maxWidth: 16, maxHeight: .infinity)
+                } else {
+                    Spacer().frame(width: 16)
+                }
+
                 Image(nsImage: item.icon)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
@@ -17,7 +36,10 @@ struct FileRowView: View {
                 Text(item.name)
                     .lineLimit(1)
                     .truncationMode(.middle)
+                    .fontWeight(item.isDirectory ? .bold : .regular)
+                    .foregroundStyle(item.isHidden ? .gray : .primary)
             }
+            .padding(.leading, CGFloat(depth) * 16)
             .frame(maxWidth: .infinity, alignment: .leading)
 
             Spacer().frame(width: 8)
@@ -45,7 +67,5 @@ struct FileRowView: View {
                 .frame(width: kindWidth, alignment: .leading)
         }
         .font(.system(size: 13))
-        .padding(.vertical, 2)
-        .padding(.horizontal, 8)
     }
 }
