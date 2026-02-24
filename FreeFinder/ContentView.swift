@@ -1,24 +1,23 @@
-//
-//  ContentView.swift
-//  FreeFinder
-//
-//  Created by Vladimir Katz on 2/22/26.
-//
-
 import SwiftUI
 
 struct ContentView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
-    }
-}
+    @State private var fileListVM = FileListViewModel()
+    @State private var sidebarVM = SidebarViewModel()
+    @State private var sidebarSelection: URL?
 
-#Preview {
-    ContentView()
+    var body: some View {
+        NavigationSplitView {
+            SidebarView(viewModel: sidebarVM, selection: $sidebarSelection)
+        } detail: {
+            MainContentView(viewModel: fileListVM)
+        }
+        .onChange(of: sidebarSelection) { _, newURL in
+            if let url = newURL {
+                fileListVM.navigate(to: url)
+            }
+        }
+        .task {
+            await fileListVM.reload()
+        }
+    }
 }

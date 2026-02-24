@@ -1,10 +1,3 @@
-//
-//  FreeFinderApp.swift
-//  FreeFinder
-//
-//  Created by Vladimir Katz on 2/22/26.
-//
-
 import SwiftUI
 
 @main
@@ -13,5 +6,6 @@ struct FreeFinderApp: App {
         WindowGroup {
             ContentView()
         }
+        .defaultSize(width: 1000, height: 650)
     }
 }

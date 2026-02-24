@@ -1,0 +1,28 @@
+# Xcode
+build/
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+xcuserdata/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# macOS
+.DS_Store
+*.swp
+*~
+
+# App packaging
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Provisioning
+*.mobileprovision
+*.provisionprofile
+
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace
