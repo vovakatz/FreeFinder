@@ -2,6 +2,10 @@ import SwiftUI
 
 struct MainContentView: View {
     @Bindable var viewModel: FileListViewModel
+    var showLeftSidebar: Bool = true
+    var onToggleLeftSidebar: () -> Void = {}
+    var showRightPanel: Bool = true
+    var onToggleRightPanel: () -> Void = {}
 
     var body: some View {
         VStack(spacing: 0) {
@@ -12,6 +16,10 @@ struct MainContentView: View {
                 canGoForward: viewModel.canGoForward,
                 onGoBack: { viewModel.goBack() },
                 onGoForward: { viewModel.goForward() },
+                showLeftSidebar: showLeftSidebar,
+                onToggleLeftSidebar: onToggleLeftSidebar,
+                showRightPanel: showRightPanel,
+                onToggleRightPanel: onToggleRightPanel,
                 showHiddenFiles: viewModel.showHiddenFiles,
                 onToggleHidden: {
                     viewModel.showHiddenFiles.toggle()

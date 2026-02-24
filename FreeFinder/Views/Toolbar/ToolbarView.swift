@@ -7,6 +7,10 @@ struct ToolbarView: View {
     var canGoForward: Bool = false
     var onGoBack: () -> Void = {}
     var onGoForward: () -> Void = {}
+    var showLeftSidebar: Bool = true
+    var onToggleLeftSidebar: () -> Void = {}
+    var showRightPanel: Bool = true
+    var onToggleRightPanel: () -> Void = {}
     var showHiddenFiles: Bool = false
     var onToggleHidden: () -> Void = {}
 
@@ -45,6 +49,18 @@ struct ToolbarView: View {
             }
 
             Spacer()
+
+            Button(action: onToggleLeftSidebar) {
+                Image(systemName: "sidebar.left")
+            }
+            .buttonStyle(.borderless)
+            .help(showLeftSidebar ? "Hide left sidebar" : "Show left sidebar")
+
+            Button(action: onToggleRightPanel) {
+                Image(systemName: "sidebar.right")
+            }
+            .buttonStyle(.borderless)
+            .help(showRightPanel ? "Hide right panel" : "Show right panel")
 
             Button(action: onToggleHidden) {
                 Image(systemName: showHiddenFiles ? "eye" : "eye.slash")
