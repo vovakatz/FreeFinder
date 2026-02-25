@@ -125,6 +125,7 @@ struct InfoWidgetView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             WidgetHeaderView(title: "Info")
+                .fixedSize(horizontal: false, vertical: true)
 
             Group {
                 if selectedURLs.count == 0 {

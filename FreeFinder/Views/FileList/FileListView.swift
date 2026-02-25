@@ -69,12 +69,13 @@ struct FileListView: View {
                         isExpanded: expandedFolders.contains(displayItem.fileItem.url),
                         onToggleExpand: { onToggleExpand(displayItem.fileItem) }
                     )
+                    .listRowInsets(EdgeInsets(top: 2, leading: 4, bottom: 2, trailing: 4))
                     .draggable(displayItem.fileItem.url)
                     .tag(displayItem.id)
                 }
                 .listStyle(.plain)
                 .alternatingRowBackgrounds()
-                .environment(\.defaultMinListRowHeight, 14)
+                .environment(\.defaultMinListRowHeight, 20)
                 .onHover { doubleClickProxy.isHovered = $0 }
                 .onAppear { doubleClickProxy.startMonitoring() }
                 .onDisappear { doubleClickProxy.stopMonitoring() }

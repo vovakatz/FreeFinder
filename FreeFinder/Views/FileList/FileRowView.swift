@@ -66,6 +66,6 @@ struct FileRowView: View {
                 .foregroundStyle(.secondary)
                 .frame(width: kindWidth, alignment: .leading)
         }
-        .font(.system(size: 13))
+        .font(.system(size: 12))
     }
 }

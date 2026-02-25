@@ -15,6 +15,7 @@ struct PreviewWidgetView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             WidgetHeaderView(title: "Preview")
+                .fixedSize(horizontal: false, vertical: true)
 
             Group {
                 if selectedURLs.count == 0 {
