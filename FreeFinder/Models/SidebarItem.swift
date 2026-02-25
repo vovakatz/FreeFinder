@@ -10,6 +10,7 @@ struct SidebarItem: Identifiable, Hashable {
     let name: String
     let icon: String
     let category: SidebarCategory
+    var isDefault: Bool = false
 
     var url: URL { id }
 }

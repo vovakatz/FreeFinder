@@ -14,6 +14,7 @@ struct SidebarView: View {
                             Button("Remove") {
                                 viewModel.removeFavorite(item)
                             }
+                            .disabled(item.isDefault)
                         }
                 }
                 .dropDestination(for: URL.self) { urls, index in

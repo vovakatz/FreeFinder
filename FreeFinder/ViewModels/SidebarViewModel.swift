@@ -9,11 +9,11 @@ final class SidebarViewModel {
     init() {
         let home = FileManager.default.homeDirectoryForCurrentUser
         favorites = [
-            SidebarItem(id: home, name: "Home", icon: "house", category: .favorites),
-            SidebarItem(id: home.appending(path: "Desktop"), name: "Desktop", icon: "menubar.dock.rectangle", category: .favorites),
-            SidebarItem(id: home.appending(path: "Documents"), name: "Documents", icon: "doc", category: .favorites),
-            SidebarItem(id: home.appending(path: "Downloads"), name: "Downloads", icon: "arrow.down.circle", category: .favorites),
-            SidebarItem(id: URL(filePath: "/Applications"), name: "Applications", icon: "app.dashed", category: .favorites),
+            SidebarItem(id: home, name: "Home", icon: "house", category: .favorites, isDefault: true),
+            SidebarItem(id: home.appending(path: "Desktop"), name: "Desktop", icon: "menubar.dock.rectangle", category: .favorites, isDefault: true),
+            SidebarItem(id: home.appending(path: "Documents"), name: "Documents", icon: "doc", category: .favorites, isDefault: true),
+            SidebarItem(id: home.appending(path: "Downloads"), name: "Downloads", icon: "arrow.down.circle", category: .favorites, isDefault: true),
+            SidebarItem(id: URL(filePath: "/Applications"), name: "Applications", icon: "app.dashed", category: .favorites, isDefault: true),
         ]
     }
 
