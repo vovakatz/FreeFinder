@@ -185,6 +185,19 @@ final class FileListViewModel {
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!)
     }
 
+    // MARK: - Rename
+
+    func renameItem(at url: URL, to newName: String) {
+        let newURL = url.deletingLastPathComponent().appendingPathComponent(newName)
+        guard newURL != url else { return }
+        do {
+            try FileManager.default.moveItem(at: url, to: newURL)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        Task { await reload() }
+    }
+
     // MARK: - Create operations
 
     func createFolder(name: String) {

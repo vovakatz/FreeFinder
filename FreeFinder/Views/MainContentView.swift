@@ -60,6 +60,7 @@ struct MainContentView: View {
                         onOpenFullDiskAccessSettings: { viewModel.openFullDiskAccessSettings() },
                         onCreateFolder: { viewModel.createFolder(name: $0) },
                         onCreateFile: { viewModel.createFile(name: $0) },
+                        onRename: { viewModel.renameItem(at: $0, to: $1) },
                         showDeleteConfirmation: $viewModel.showDeleteConfirmation,
                         selection: $viewModel.selectedItems
                     )

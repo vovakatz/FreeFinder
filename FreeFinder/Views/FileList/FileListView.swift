@@ -26,6 +26,7 @@ struct FileListView: View {
     var onOpenFullDiskAccessSettings: () -> Void = {}
     var onCreateFolder: (String) -> Void = { _ in }
     var onCreateFile: (String) -> Void = { _ in }
+    var onRename: (URL, String) -> Void = { _, _ in }
     @Binding var showDeleteConfirmation: Bool
 
     @Binding var selection: Set<FileItem.ID>
@@ -36,12 +37,26 @@ struct FileListView: View {
     @State private var showNewFolderSheet = false
     @State private var showNewFileSheet = false
     @State private var newItemName = ""
+    @State private var renamingURL: URL? = nil
+    @State private var renameText = ""
 
     var body: some View {
-        let _ = doubleClickProxy.updateAction { [selection, displayItems, onOpen] in
+        let _ = doubleClickProxy.updateDoubleClickAction { [selection, displayItems, onOpen] in
+            doubleClickProxy.cancelPendingRename()
+            renamingURL = nil
             guard let selectedURL = selection.first,
                   let displayItem = displayItems.first(where: { $0.id == selectedURL }) else { return }
             onOpen(displayItem.fileItem)
+        }
+        let _ = doubleClickProxy.updateSingleClickAction { [selection, displayItems] in
+            guard renamingURL == nil,
+                  selection.count == 1,
+                  let url = selection.first,
+                  let item = displayItems.first(where: { $0.id == url }) else { return }
+            doubleClickProxy.schedulePendingRename {
+                renamingURL = url
+                renameText = item.fileItem.name
+            }
         }
 
         VStack(spacing: 0) {
@@ -138,7 +153,11 @@ struct FileListView: View {
                 kindWidth: kindWidth,
                 depth: displayItem.depth,
                 isExpanded: expandedFolders.contains(displayItem.fileItem.url),
-                onToggleExpand: { onToggleExpand(displayItem.fileItem) }
+                onToggleExpand: { onToggleExpand(displayItem.fileItem) },
+                isRenaming: renamingURL == displayItem.id,
+                renameText: $renameText,
+                onCommitRename: { commitRename(for: displayItem.id) },
+                onCancelRename: { cancelRename() }
             )
             .listRowInsets(EdgeInsets(top: 2, leading: 4, bottom: 2, trailing: 4))
             .draggable(displayItem.fileItem.url)
@@ -152,10 +171,19 @@ struct FileListView: View {
         .environment(\.defaultMinListRowHeight, 20)
         .onHover { doubleClickProxy.isHovered = $0 }
         .onKeyPress(.return) {
+            if renamingURL != nil {
+                return .ignored // let TextField handle it
+            }
             openSelected()
             return .handled
         }
         .contextMenu { backgroundContextMenu }
+        .onChange(of: selection) { _, newValue in
+            doubleClickProxy.cancelPendingRename()
+            if let renaming = renamingURL, !newValue.contains(renaming) {
+                commitRename(for: renaming)
+            }
+        }
     }
 
     private var gridView: some View {
@@ -167,7 +195,11 @@ struct FileListView: View {
                 ForEach(displayItems) { displayItem in
                     FileIconView(
                         item: displayItem.fileItem,
-                        isSelected: selection.contains(displayItem.id)
+                        isSelected: selection.contains(displayItem.id),
+                        isRenaming: renamingURL == displayItem.id,
+                        renameText: $renameText,
+                        onCommitRename: { commitRename(for: displayItem.id) },
+                        onCancelRename: { cancelRename() }
                     )
                     .onTapGesture {
                         selection = [displayItem.id]
@@ -183,10 +215,19 @@ struct FileListView: View {
         }
         .onHover { doubleClickProxy.isHovered = $0 }
         .onKeyPress(.return) {
+            if renamingURL != nil {
+                return .ignored
+            }
             openSelected()
             return .handled
         }
         .contextMenu { backgroundContextMenu }
+        .onChange(of: selection) { _, newValue in
+            doubleClickProxy.cancelPendingRename()
+            if let renaming = renamingURL, !newValue.contains(renaming) {
+                commitRename(for: renaming)
+            }
+        }
     }
 
     @ViewBuilder
@@ -223,6 +264,14 @@ struct FileListView: View {
 
         Divider()
 
+        Button("Rename") {
+            selection = [displayItem.id]
+            renamingURL = displayItem.id
+            renameText = displayItem.fileItem.name
+        }
+
+        Divider()
+
         Button("Cut") {
             selection = targetURLs
             onCut(targetURLs)
@@ -253,6 +302,20 @@ struct FileListView: View {
             selection = targetURLs
             onRequestDelete(targetURLs)
         }
+    }
+
+    private func commitRename(for url: URL) {
+        let trimmed = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty {
+            onRename(url, trimmed)
+        }
+        renamingURL = nil
+        renameText = ""
+    }
+
+    private func cancelRename() {
+        renamingURL = nil
+        renameText = ""
     }
 
     private func openSelected() {
@@ -305,19 +368,44 @@ private struct NewItemSheet: View {
 }
 
 private class DoubleClickProxy {
-    var onFire: (() -> Void)?
+    var onDoubleClick: (() -> Void)?
+    var onSingleClick: (() -> Void)?
     var isHovered = false
     var monitor: Any?
+    var pendingRenameWork: DispatchWorkItem?
 
-    func updateAction(_ action: @escaping () -> Void) {
-        onFire = action
+    func updateDoubleClickAction(_ action: @escaping () -> Void) {
+        onDoubleClick = action
+    }
+
+    func updateSingleClickAction(_ action: @escaping () -> Void) {
+        onSingleClick = action
+    }
+
+    func schedulePendingRename(_ action: @escaping () -> Void) {
+        pendingRenameWork?.cancel()
+        let work = DispatchWorkItem(block: action)
+        pendingRenameWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: work)
+    }
+
+    func cancelPendingRename() {
+        pendingRenameWork?.cancel()
+        pendingRenameWork = nil
     }
 
     func startMonitoring() {
         guard monitor == nil else { return }
         monitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
-            if event.clickCount == 2, self?.isHovered == true {
-                self?.onFire?()
+            guard let self, self.isHovered else { return event }
+            // Ignore clicks that are reactivating the window (e.g. switching back from another app)
+            guard event.window?.isKeyWindow == true else { return event }
+            if event.clickCount == 2 {
+                self.cancelPendingRename()
+                self.onDoubleClick?()
+            } else if event.clickCount == 1 {
+                self.cancelPendingRename()
+                self.onSingleClick?()
             }
             return event
         }

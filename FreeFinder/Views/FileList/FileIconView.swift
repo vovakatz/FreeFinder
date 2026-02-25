@@ -3,6 +3,10 @@ import SwiftUI
 struct FileIconView: View {
     let item: FileItem
     let isSelected: Bool
+    var isRenaming: Bool = false
+    @Binding var renameText: String
+    var onCommitRename: () -> Void = {}
+    var onCancelRename: () -> Void = {}
 
     var body: some View {
         VStack(spacing: 4) {
@@ -11,10 +15,20 @@ struct FileIconView: View {
                 .aspectRatio(contentMode: .fit)
                 .frame(width: 64, height: 64)
 
-            Text(item.name)
-                .font(.system(size: 11))
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
+            if isRenaming {
+                RenameTextField(
+                    text: $renameText,
+                    onCommit: onCommitRename,
+                    onCancel: onCancelRename,
+                    fontSize: 11
+                )
+                .frame(width: 100)
+            } else {
+                Text(item.name)
+                    .font(.system(size: 11))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+            }
 
             if !item.isDirectory {
                 Text(item.fileSize.formattedFileSize)

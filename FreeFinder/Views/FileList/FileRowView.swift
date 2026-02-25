@@ -8,6 +8,10 @@ struct FileRowView: View {
     var depth: Int = 0
     var isExpanded: Bool = false
     var onToggleExpand: (() -> Void)?
+    var isRenaming: Bool = false
+    @Binding var renameText: String
+    var onCommitRename: () -> Void = {}
+    var onCancelRename: () -> Void = {}
 
     var body: some View {
         HStack(spacing: 0) {
@@ -33,11 +37,21 @@ struct FileRowView: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 16, height: 16)
 
-                Text(item.name)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .fontWeight(item.isDirectory ? .bold : .regular)
-                    .foregroundStyle(item.isHidden ? .gray : .primary)
+                if isRenaming {
+                    RenameTextField(
+                        text: $renameText,
+                        onCommit: onCommitRename,
+                        onCancel: onCancelRename,
+                        fontSize: 12
+                    )
+                    .frame(height: 18)
+                } else {
+                    Text(item.name)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .fontWeight(item.isDirectory ? .bold : .regular)
+                        .foregroundStyle(item.isHidden ? .gray : .primary)
+                }
             }
             .padding(.leading, CGFloat(depth) * 16)
             .frame(maxWidth: .infinity, alignment: .leading)
