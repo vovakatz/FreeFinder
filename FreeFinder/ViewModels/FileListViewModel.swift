@@ -1,6 +1,11 @@
 import Foundation
 import AppKit
 
+enum ViewMode {
+    case list
+    case icons
+}
+
 struct DisplayItem: Identifiable {
     let fileItem: FileItem
     let depth: Int
@@ -20,6 +25,7 @@ final class FileListViewModel {
     var expandedFolders: Set<URL> = []
     var childItems: [URL: [FileItem]] = [:]
     var selectedItems: Set<URL> = []
+    var viewMode: ViewMode = .list
 
     var volumeStatusText: String {
         do {

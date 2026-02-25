@@ -11,6 +11,8 @@ struct ToolbarView: View {
     var onToggleLeftSidebar: () -> Void = {}
     var showRightPanel: Bool = true
     var onToggleRightPanel: () -> Void = {}
+    var viewMode: ViewMode = .list
+    var onSetViewMode: (ViewMode) -> Void = { _ in }
     var showHiddenFiles: Bool = false
     var onToggleHidden: () -> Void = {}
 
@@ -50,6 +52,22 @@ struct ToolbarView: View {
 
             Spacer()
 
+            Button(action: { onSetViewMode(.list) }) {
+                Image(systemName: "list.dash")
+                    .foregroundStyle(viewMode == .list ? Color.accentColor : Color.secondary)
+            }
+            .buttonStyle(.borderless)
+            .help("List view")
+
+            Button(action: { onSetViewMode(.icons) }) {
+                Image(systemName: "square.grid.2x2")
+                    .foregroundStyle(viewMode == .icons ? Color.accentColor : Color.secondary)
+            }
+            .buttonStyle(.borderless)
+            .help("Icon view")
+
+            Divider().frame(height: 16).padding(.horizontal, 4)
+
             Button(action: onToggleLeftSidebar) {
                 Image(systemName: "sidebar.left")
             }
@@ -61,6 +79,8 @@ struct ToolbarView: View {
             }
             .buttonStyle(.borderless)
             .help(showRightPanel ? "Hide right panel" : "Show right panel")
+
+            Divider().frame(height: 16).padding(.horizontal, 4)
 
             Button(action: onToggleHidden) {
                 Image(systemName: showHiddenFiles ? "eye" : "eye.slash")

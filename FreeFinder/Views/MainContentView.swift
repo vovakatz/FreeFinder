@@ -20,6 +20,8 @@ struct MainContentView: View {
                 onToggleLeftSidebar: onToggleLeftSidebar,
                 showRightPanel: showRightPanel,
                 onToggleRightPanel: onToggleRightPanel,
+                viewMode: viewModel.viewMode,
+                onSetViewMode: { viewModel.viewMode = $0 },
                 showHiddenFiles: viewModel.showHiddenFiles,
                 onToggleHidden: {
                     viewModel.showHiddenFiles.toggle()
@@ -37,6 +39,7 @@ struct MainContentView: View {
                 onSort: { viewModel.toggleSort(by: $0) },
                 onOpen: { viewModel.openItem($0) },
                 onToggleExpand: { viewModel.toggleExpanded($0) },
+                viewMode: viewModel.viewMode,
                 selection: $viewModel.selectedItems
             )
 

@@ -10,6 +10,7 @@ struct FileListView: View {
     let onSort: (SortField) -> Void
     let onOpen: (FileItem) -> Void
     let onToggleExpand: (FileItem) -> Void
+    var viewMode: ViewMode = .list
 
     @Binding var selection: Set<FileItem.ID>
     @State private var dateWidth: CGFloat = 150
@@ -25,14 +26,16 @@ struct FileListView: View {
         }
 
         VStack(spacing: 0) {
-            ColumnHeaderView(
-                sortCriteria: sortCriteria,
-                onSort: onSort,
-                dateWidth: $dateWidth,
-                sizeWidth: $sizeWidth,
-                kindWidth: $kindWidth
-            )
-            Divider()
+            if viewMode == .list {
+                ColumnHeaderView(
+                    sortCriteria: sortCriteria,
+                    onSort: onSort,
+                    dateWidth: $dateWidth,
+                    sizeWidth: $sizeWidth,
+                    kindWidth: $kindWidth
+                )
+                Divider()
+            }
 
             if isLoading {
                 Spacer()
@@ -59,37 +62,85 @@ struct FileListView: View {
                 }
                 Spacer()
             } else {
-                List(displayItems, selection: $selection) { displayItem in
-                    FileRowView(
+                contentView
+            }
+        }
+        .onAppear { doubleClickProxy.startMonitoring() }
+        .onDisappear { doubleClickProxy.stopMonitoring() }
+    }
+
+    @ViewBuilder
+    private var contentView: some View {
+        if viewMode == .list {
+            listView
+        } else {
+            gridView
+        }
+    }
+
+    private var listView: some View {
+        List(displayItems, selection: $selection) { displayItem in
+            FileRowView(
+                item: displayItem.fileItem,
+                dateWidth: dateWidth,
+                sizeWidth: sizeWidth,
+                kindWidth: kindWidth,
+                depth: displayItem.depth,
+                isExpanded: expandedFolders.contains(displayItem.fileItem.url),
+                onToggleExpand: { onToggleExpand(displayItem.fileItem) }
+            )
+            .listRowInsets(EdgeInsets(top: 2, leading: 4, bottom: 2, trailing: 4))
+            .draggable(displayItem.fileItem.url)
+            .tag(displayItem.id)
+        }
+        .listStyle(.plain)
+        .alternatingRowBackgrounds()
+        .environment(\.defaultMinListRowHeight, 20)
+        .onHover { doubleClickProxy.isHovered = $0 }
+        .onKeyPress(.return) {
+            openSelected()
+            return .handled
+        }
+        .contextMenu {
+            if let selectedDisplay = displayItems.first(where: { selection.contains($0.id) }) {
+                Button("Open") { onOpen(selectedDisplay.fileItem) }
+                Button("Show in Finder") {
+                    NSWorkspace.shared.activateFileViewerSelecting([selectedDisplay.fileItem.url])
+                }
+            }
+        }
+    }
+
+    private var gridView: some View {
+        ScrollView {
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 120))],
+                spacing: 8
+            ) {
+                ForEach(displayItems) { displayItem in
+                    FileIconView(
                         item: displayItem.fileItem,
-                        dateWidth: dateWidth,
-                        sizeWidth: sizeWidth,
-                        kindWidth: kindWidth,
-                        depth: displayItem.depth,
-                        isExpanded: expandedFolders.contains(displayItem.fileItem.url),
-                        onToggleExpand: { onToggleExpand(displayItem.fileItem) }
+                        isSelected: selection.contains(displayItem.id)
                     )
-                    .listRowInsets(EdgeInsets(top: 2, leading: 4, bottom: 2, trailing: 4))
+                    .onTapGesture {
+                        selection = [displayItem.id]
+                    }
                     .draggable(displayItem.fileItem.url)
                     .tag(displayItem.id)
                 }
-                .listStyle(.plain)
-                .alternatingRowBackgrounds()
-                .environment(\.defaultMinListRowHeight, 20)
-                .onHover { doubleClickProxy.isHovered = $0 }
-                .onAppear { doubleClickProxy.startMonitoring() }
-                .onDisappear { doubleClickProxy.stopMonitoring() }
-                .onKeyPress(.return) {
-                    openSelected()
-                    return .handled
-                }
-                .contextMenu {
-                    if let selectedDisplay = displayItems.first(where: { selection.contains($0.id) }) {
-                        Button("Open") { onOpen(selectedDisplay.fileItem) }
-                        Button("Show in Finder") {
-                            NSWorkspace.shared.activateFileViewerSelecting([selectedDisplay.fileItem.url])
-                        }
-                    }
+            }
+            .padding(8)
+        }
+        .onHover { doubleClickProxy.isHovered = $0 }
+        .onKeyPress(.return) {
+            openSelected()
+            return .handled
+        }
+        .contextMenu {
+            if let selectedDisplay = displayItems.first(where: { selection.contains($0.id) }) {
+                Button("Open") { onOpen(selectedDisplay.fileItem) }
+                Button("Show in Finder") {
+                    NSWorkspace.shared.activateFileViewerSelecting([selectedDisplay.fileItem.url])
                 }
             }
         }
