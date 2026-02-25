@@ -11,7 +11,7 @@ struct ContentView: View {
         HSplitView {
             if showLeftSidebar {
                 SidebarView(viewModel: sidebarVM, selection: $sidebarSelection)
-                    .frame(minWidth: 150, idealWidth: 200, maxWidth: 300)
+                    .frame(minWidth: 100, idealWidth: 100, maxWidth: 300)
             }
             MainContentView(
                 viewModel: fileListVM,

@@ -3,7 +3,7 @@ import AppKit
 import UniformTypeIdentifiers
 
 struct FileSystemService {
-    static let resourceKeys: Set<URLResourceKey> = [
+    nonisolated static let resourceKeys: Set<URLResourceKey> = [
         .nameKey,
         .isDirectoryKey,
         .isPackageKey,
