@@ -8,13 +8,18 @@ final class SidebarViewModel {
 
     init() {
         let home = FileManager.default.homeDirectoryForCurrentUser
-        favorites = [
+        let trashURL = try? FileManager.default.url(for: .trashDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
+        var items = [
             SidebarItem(id: home, name: "Home", icon: "house", category: .favorites, isDefault: true),
             SidebarItem(id: home.appending(path: "Desktop"), name: "Desktop", icon: "menubar.dock.rectangle", category: .favorites, isDefault: true),
             SidebarItem(id: home.appending(path: "Documents"), name: "Documents", icon: "doc", category: .favorites, isDefault: true),
             SidebarItem(id: home.appending(path: "Downloads"), name: "Downloads", icon: "arrow.down.circle", category: .favorites, isDefault: true),
             SidebarItem(id: URL(filePath: "/Applications"), name: "Applications", icon: "app.dashed", category: .favorites, isDefault: true),
         ]
+        if let trashURL {
+            items.append(SidebarItem(id: trashURL, name: "Trash", icon: "trash", category: .favorites, isDefault: true))
+        }
+        favorites = items
     }
 
     func removeFavorite(_ item: SidebarItem) {

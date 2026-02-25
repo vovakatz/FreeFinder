@@ -46,6 +46,21 @@ struct MainContentView: View {
                         onOpen: { viewModel.openItem($0) },
                         onToggleExpand: { viewModel.toggleExpanded($0) },
                         viewMode: viewModel.viewMode,
+                        onCopy: { viewModel.copyItems($0) },
+                        onCut: { viewModel.cutItems($0) },
+                        onPaste: { viewModel.pasteItems() },
+                        onMoveToTrash: { viewModel.moveToTrash($0) },
+                        onRequestDelete: { viewModel.requestDelete($0) },
+                        onConfirmDelete: { viewModel.confirmDelete() },
+                        onConfirmOverwritePaste: { viewModel.confirmOverwritePaste() },
+                        canPaste: viewModel.clipboard != nil,
+                        conflictingNames: viewModel.conflictingNames,
+                        showOverwriteConfirmation: $viewModel.showOverwriteConfirmation,
+                        needsFullDiskAccess: viewModel.needsFullDiskAccess,
+                        onOpenFullDiskAccessSettings: { viewModel.openFullDiskAccessSettings() },
+                        onCreateFolder: { viewModel.createFolder(name: $0) },
+                        onCreateFile: { viewModel.createFile(name: $0) },
+                        showDeleteConfirmation: $viewModel.showDeleteConfirmation,
                         selection: $viewModel.selectedItems
                     )
                 }
