@@ -11,6 +11,8 @@ struct ToolbarView: View {
     var onToggleLeftSidebar: () -> Void = {}
     var showRightPanel: Bool = true
     var onToggleRightPanel: () -> Void = {}
+    var showBottomPanel: Bool = true
+    var onToggleBottomPanel: () -> Void = {}
     var viewMode: ViewMode = .list
     var onSetViewMode: (ViewMode) -> Void = { _ in }
     var showHiddenFiles: Bool = false
@@ -73,6 +75,12 @@ struct ToolbarView: View {
             }
             .buttonStyle(.borderless)
             .help(showLeftSidebar ? "Hide left sidebar" : "Show left sidebar")
+
+            Button(action: onToggleBottomPanel) {
+                Image(systemName: "rectangle.bottomthird.inset.filled")
+            }
+            .buttonStyle(.borderless)
+            .help(showBottomPanel ? "Hide bottom panel" : "Show bottom panel")
 
             Button(action: onToggleRightPanel) {
                 Image(systemName: "sidebar.right")

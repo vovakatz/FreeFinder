@@ -6,6 +6,7 @@ struct ContentView: View {
     @State private var sidebarSelection: URL?
     @State private var showLeftSidebar: Bool = true
     @State private var showRightPanel: Bool = true
+    @State private var showBottomPanel: Bool = false
 
     var body: some View {
         HSplitView {
@@ -18,7 +19,9 @@ struct ContentView: View {
                 showLeftSidebar: showLeftSidebar,
                 onToggleLeftSidebar: { showLeftSidebar.toggle() },
                 showRightPanel: showRightPanel,
-                onToggleRightPanel: { showRightPanel.toggle() }
+                onToggleRightPanel: { showRightPanel.toggle() },
+                showBottomPanel: showBottomPanel,
+                onToggleBottomPanel: { showBottomPanel.toggle() }
             )
                 .frame(minWidth: 400)
             if showRightPanel {

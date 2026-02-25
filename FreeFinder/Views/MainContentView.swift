@@ -6,6 +6,8 @@ struct MainContentView: View {
     var onToggleLeftSidebar: () -> Void = {}
     var showRightPanel: Bool = true
     var onToggleRightPanel: () -> Void = {}
+    var showBottomPanel: Bool = true
+    var onToggleBottomPanel: () -> Void = {}
 
     var body: some View {
         VStack(spacing: 0) {
@@ -20,6 +22,8 @@ struct MainContentView: View {
                 onToggleLeftSidebar: onToggleLeftSidebar,
                 showRightPanel: showRightPanel,
                 onToggleRightPanel: onToggleRightPanel,
+                showBottomPanel: showBottomPanel,
+                onToggleBottomPanel: onToggleBottomPanel,
                 viewMode: viewModel.viewMode,
                 onSetViewMode: { viewModel.viewMode = $0 },
                 showHiddenFiles: viewModel.showHiddenFiles,
@@ -30,18 +34,27 @@ struct MainContentView: View {
             )
             Divider()
 
-            FileListView(
-                displayItems: viewModel.displayItems,
-                sortCriteria: viewModel.sortCriteria,
-                isLoading: viewModel.isLoading,
-                errorMessage: viewModel.errorMessage,
-                expandedFolders: viewModel.expandedFolders,
-                onSort: { viewModel.toggleSort(by: $0) },
-                onOpen: { viewModel.openItem($0) },
-                onToggleExpand: { viewModel.toggleExpanded($0) },
-                viewMode: viewModel.viewMode,
-                selection: $viewModel.selectedItems
-            )
+            VSplitView {
+                GeometryReader { _ in
+                    FileListView(
+                        displayItems: viewModel.displayItems,
+                        sortCriteria: viewModel.sortCriteria,
+                        isLoading: viewModel.isLoading,
+                        errorMessage: viewModel.errorMessage,
+                        expandedFolders: viewModel.expandedFolders,
+                        onSort: { viewModel.toggleSort(by: $0) },
+                        onOpen: { viewModel.openItem($0) },
+                        onToggleExpand: { viewModel.toggleExpanded($0) },
+                        viewMode: viewModel.viewMode,
+                        selection: $viewModel.selectedItems
+                    )
+                }
+                .frame(minHeight: 100)
+
+                if showBottomPanel {
+                    BottomPanelView(currentDirectory: viewModel.currentURL)
+                }
+            }
 
             Divider()
 
