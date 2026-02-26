@@ -4,6 +4,7 @@ import AppKit
 enum ViewMode {
     case list
     case icons
+    case thumbnails
 }
 
 struct DisplayItem: Identifiable {

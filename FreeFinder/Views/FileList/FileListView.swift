@@ -158,10 +158,13 @@ struct FileListView: View {
 
     @ViewBuilder
     private func contentView(effWidths: (date: CGFloat, size: CGFloat, kind: CGFloat)) -> some View {
-        if viewMode == .list {
+        switch viewMode {
+        case .list:
             listView(effWidths: effWidths)
-        } else {
+        case .icons:
             gridView
+        case .thumbnails:
+            thumbnailGridView
         }
     }
 
@@ -215,6 +218,50 @@ struct FileListView: View {
             ) {
                 ForEach(displayItems) { displayItem in
                     FileIconView(
+                        item: displayItem.fileItem,
+                        isSelected: selection.contains(displayItem.id),
+                        isRenaming: renamingURL == displayItem.id,
+                        renameText: $renameText,
+                        onCommitRename: { commitRename(for: displayItem.id) },
+                        onCancelRename: { cancelRename() }
+                    )
+                    .onTapGesture {
+                        selection = [displayItem.id]
+                    }
+                    .draggable(displayItem.fileItem.url)
+                    .tag(displayItem.id)
+                    .contextMenu {
+                        contextMenuContent(for: displayItem)
+                    }
+                }
+            }
+            .padding(8)
+        }
+        .onHover { doubleClickProxy.isHovered = $0 }
+        .onKeyPress(.return) {
+            if renamingURL != nil {
+                return .ignored
+            }
+            openSelected()
+            return .handled
+        }
+        .contextMenu { backgroundContextMenu }
+        .onChange(of: selection) { _, newValue in
+            doubleClickProxy.cancelPendingRename()
+            if let renaming = renamingURL, !newValue.contains(renaming) {
+                commitRename(for: renaming)
+            }
+        }
+    }
+
+    private var thumbnailGridView: some View {
+        ScrollView {
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 120))],
+                spacing: 8
+            ) {
+                ForEach(displayItems) { displayItem in
+                    FileThumbnailView(
                         item: displayItem.fileItem,
                         isSelected: selection.contains(displayItem.id),
                         isRenaming: renamingURL == displayItem.id,

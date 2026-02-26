@@ -39,10 +39,16 @@ struct ContentView: View {
                 .help("List view")
 
                 Button { fileListVM.viewMode = .icons } label: {
-                    Image(systemName: "square.grid.2x2")
+                    Image(systemName: "square.grid.3x3")
                         .foregroundStyle(fileListVM.viewMode == .icons ? Color.accentColor : Color.secondary)
                 }
                 .help("Icon view")
+
+                Button { fileListVM.viewMode = .thumbnails } label: {
+                    Image(systemName: "square.grid.2x2")
+                        .foregroundStyle(fileListVM.viewMode == .thumbnails ? Color.accentColor : Color.secondary)
+                }
+                .help("Thumbnail view")
 
                 Button {
                     fileListVM.showHiddenFiles.toggle()
