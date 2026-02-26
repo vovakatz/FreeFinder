@@ -9,18 +9,40 @@ struct NavigationState {
         self.currentURL = url
     }
 
+    var isNetworkURL: Bool {
+        currentURL.scheme == "network"
+    }
+
     var canGoBack: Bool { !backStack.isEmpty }
     var canGoForward: Bool { !forwardStack.isEmpty }
 
     var canGoToParent: Bool {
-        currentURL.pathComponents.count > 1
+        if isNetworkURL {
+            return currentURL.host()?.isEmpty == false
+        }
+        return currentURL.pathComponents.count > 1
     }
 
     var parentURL: URL? {
-        canGoToParent ? currentURL.deletingLastPathComponent() : nil
+        if isNetworkURL {
+            guard canGoToParent else { return nil }
+            return URL(string: "network://")!
+        }
+        return canGoToParent ? currentURL.deletingLastPathComponent() : nil
     }
 
     var pathComponents: [(name: String, url: URL)] {
+        if isNetworkURL {
+            var components: [(name: String, url: URL)] = []
+            let rootNetworkURL = URL(string: "network://")!
+            components.append((name: "Network", url: rootNetworkURL))
+            if let host = currentURL.host(), !host.isEmpty {
+                let displayName = host.replacingOccurrences(of: ".local", with: "")
+                components.append((name: displayName, url: currentURL))
+            }
+            return components
+        }
+
         var components: [(name: String, url: URL)] = []
         var url = currentURL.standardizedFileURL
         while url.pathComponents.count > 1 {

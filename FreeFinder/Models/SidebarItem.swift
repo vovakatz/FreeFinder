@@ -3,6 +3,7 @@ import Foundation
 enum SidebarCategory: String {
     case favorites
     case volumes
+    case network
 }
 
 struct SidebarItem: Identifiable, Hashable {

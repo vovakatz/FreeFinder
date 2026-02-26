@@ -16,7 +16,7 @@ struct FileRowView: View {
     var body: some View {
         HStack(spacing: 0) {
             HStack(spacing: 6) {
-                if item.isDirectory {
+                if item.isDirectory, item.url.isFileURL {
                     Button { onToggleExpand?() } label: {
                         Image(systemName: "chevron.right")
                             .font(.system(size: 10, weight: .semibold))

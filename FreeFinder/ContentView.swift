@@ -84,5 +84,22 @@ struct ContentView: View {
         .task {
             await fileListVM.reload()
         }
+        .sheet(isPresented: $fileListVM.showConnectToServer) {
+            ConnectToServerSheet { urlString in
+                fileListVM.connectToServer(urlString: urlString)
+            }
+        }
+        .sheet(isPresented: $fileListVM.showAuthSheet) {
+            let serverName = fileListVM.pendingAuthHostname
+                ?? fileListVM.pendingMountURL?.host()
+                ?? "Server"
+            AuthenticationSheet(serverName: serverName) { credentials in
+                fileListVM.authenticateAndMount(credentials: credentials)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .connectToServer)) { _ in
+            fileListVM.showConnectToServer = true
+        }
     }
 }
+

@@ -34,6 +34,23 @@ final class SidebarViewModel {
         favorites.insert(item, at: clampedIndex)
     }
 
+    var networkItem: SidebarItem {
+        SidebarItem(
+            id: URL(string: "network://")!,
+            name: "Network",
+            icon: "network",
+            category: .network
+        )
+    }
+
+    var localVolumes: [SidebarItem] {
+        volumeService.localVolumes
+    }
+
+    var networkVolumes: [SidebarItem] {
+        volumeService.networkVolumes
+    }
+
     var volumes: [SidebarItem] {
         volumeService.volumes
     }

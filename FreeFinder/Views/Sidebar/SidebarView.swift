@@ -24,15 +24,36 @@ struct SidebarView: View {
                 }
             }
 
-            Section(header: Text("Volumes").fontWeight(.bold)) {
-                ForEach(viewModel.volumes) { item in
+            Section(header: Text("Locations").fontWeight(.bold)) {
+                Label(viewModel.networkItem.name, systemImage: viewModel.networkItem.icon)
+                    .tag(viewModel.networkItem.url)
+
+                ForEach(viewModel.localVolumes) { item in
                     Label(item.name, systemImage: item.icon)
                         .tag(item.url)
+                }
+
+                ForEach(viewModel.networkVolumes) { item in
+                    Label(item.name, systemImage: item.icon)
+                        .tag(item.url)
+                        .contextMenu {
+                            Button("Eject") {
+                                ejectVolume(item.url)
+                            }
+                        }
                 }
             }
         }
         .listStyle(.sidebar)
         .scrollContentBackground(.hidden)
         .background(Color.black.opacity(0.15))
+    }
+
+    private func ejectVolume(_ url: URL) {
+        do {
+            try NSWorkspace.shared.unmountAndEjectDevice(at: url)
+        } catch {
+            // Silently fail — volume may already be ejected
+        }
     }
 }

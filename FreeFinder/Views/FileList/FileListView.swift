@@ -317,58 +317,67 @@ struct FileListView: View {
         }
     }
 
+    private var isNetworkContext: Bool {
+        let scheme = displayItems.first?.fileItem.url.scheme
+        return scheme == "network" || scheme == "smb" || scheme == "afp"
+    }
+
     @ViewBuilder
     private func contextMenuContent(for displayItem: DisplayItem) -> some View {
         let targetURLs = selection.contains(displayItem.id) ? selection : [displayItem.id]
+        let scheme = displayItem.fileItem.url.scheme
 
         Button("Open") {
             selection = targetURLs
             onOpen(displayItem.fileItem)
         }
-        Button("Show in Finder") {
-            selection = targetURLs
-            NSWorkspace.shared.activateFileViewerSelecting([displayItem.fileItem.url])
-        }
 
-        Divider()
+        if scheme != "network" && scheme != "smb" && scheme != "afp" {
+            Button("Show in Finder") {
+                selection = targetURLs
+                NSWorkspace.shared.activateFileViewerSelecting([displayItem.fileItem.url])
+            }
 
-        Button("Rename") {
-            selection = [displayItem.id]
-            renamingURL = displayItem.id
-            renameText = displayItem.fileItem.name
-        }
+            Divider()
 
-        Divider()
+            Button("Rename") {
+                selection = [displayItem.id]
+                renamingURL = displayItem.id
+                renameText = displayItem.fileItem.name
+            }
 
-        Button("Cut") {
-            selection = targetURLs
-            onCut(targetURLs)
-        }
-        .keyboardShortcut("x", modifiers: .command)
+            Divider()
 
-        Button("Copy") {
-            selection = targetURLs
-            onCopy(targetURLs)
-        }
-        .keyboardShortcut("c", modifiers: .command)
+            Button("Cut") {
+                selection = targetURLs
+                onCut(targetURLs)
+            }
+            .keyboardShortcut("x", modifiers: .command)
 
-        Button("Paste") {
-            onPaste()
-        }
-        .keyboardShortcut("v", modifiers: .command)
-        .disabled(!canPaste)
+            Button("Copy") {
+                selection = targetURLs
+                onCopy(targetURLs)
+            }
+            .keyboardShortcut("c", modifiers: .command)
 
-        Divider()
+            Button("Paste") {
+                onPaste()
+            }
+            .keyboardShortcut("v", modifiers: .command)
+            .disabled(!canPaste)
 
-        Button("Move to Trash") {
-            selection = targetURLs
-            onMoveToTrash(targetURLs)
-        }
-        .keyboardShortcut(.delete, modifiers: .command)
+            Divider()
 
-        Button("Delete...", role: .destructive) {
-            selection = targetURLs
-            onRequestDelete(targetURLs)
+            Button("Move to Trash") {
+                selection = targetURLs
+                onMoveToTrash(targetURLs)
+            }
+            .keyboardShortcut(.delete, modifiers: .command)
+
+            Button("Delete...", role: .destructive) {
+                selection = targetURLs
+                onRequestDelete(targetURLs)
+            }
         }
     }
 

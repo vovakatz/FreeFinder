@@ -19,22 +19,38 @@ final class VolumeService {
 
     func refreshVolumes() {
         let fm = FileManager.default
-        let keys: [URLResourceKey] = [.volumeNameKey, .volumeIsInternalKey]
+        let keys: [URLResourceKey] = [.volumeNameKey, .volumeIsInternalKey, .volumeIsLocalKey]
         guard let urls = fm.mountedVolumeURLs(
             includingResourceValuesForKeys: keys,
             options: [.skipHiddenVolumes]
         ) else { return }
 
         volumes = urls.map { url in
-            let name = (try? url.resourceValues(forKeys: [.volumeNameKey]))?.volumeName
-                ?? url.lastPathComponent
+            let values = try? url.resourceValues(forKeys: [.volumeNameKey, .volumeIsLocalKey])
+            let name = values?.volumeName ?? url.lastPathComponent
+            let isLocal = values?.volumeIsLocal ?? true
+            let icon = isLocal ? "externaldrive" : "externaldrive.connected.to.line.below"
+            let category: SidebarCategory = isLocal ? .volumes : .network
             return SidebarItem(
                 id: url,
                 name: name,
-                icon: "externaldrive",
-                category: .volumes
+                icon: icon,
+                category: category
             )
         }
+    }
+
+    func isNetworkVolume(_ url: URL) -> Bool {
+        let values = try? url.resourceValues(forKeys: [.volumeIsLocalKey])
+        return values?.volumeIsLocal == false
+    }
+
+    var localVolumes: [SidebarItem] {
+        volumes.filter { $0.category == .volumes }
+    }
+
+    var networkVolumes: [SidebarItem] {
+        volumes.filter { $0.category == .network }
     }
 
     private func observeMountEvents() {

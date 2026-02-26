@@ -16,6 +16,7 @@ struct DisplayItem: Identifiable {
 @Observable
 final class FileListViewModel {
     private let fileSystemService = FileSystemService()
+    let networkService = NetworkService()
 
     private(set) var navigationState: NavigationState
     private(set) var items: [FileItem] = []
@@ -36,7 +37,15 @@ final class FileListViewModel {
     var showOverwriteConfirmation = false
     var conflictingNames: [String] = []
 
+    // Network auth state
+    var showAuthSheet = false
+    var pendingMountURL: URL?
+    var pendingAuthHostname: String?  // non-nil when auth is for share enumeration
+    var showConnectToServer = false
+    private var storedCredentials: [String: NetworkCredentials] = [:]  // hostname -> creds
+
     var volumeStatusText: String {
+        if navigationState.isNetworkURL { return "" }
         do {
             let values = try currentURL.resourceValues(forKeys: [
                 .volumeAvailableCapacityForImportantUsageKey,
@@ -77,7 +86,13 @@ final class FileListViewModel {
     }
 
     var directoryTitle: String {
-        currentURL.displayName
+        if navigationState.isNetworkURL {
+            if let host = currentURL.host(), !host.isEmpty {
+                return host.replacingOccurrences(of: ".local", with: "")
+            }
+            return "Network"
+        }
+        return currentURL.displayName
     }
 
     init(startURL: URL = FileManager.default.homeDirectoryForCurrentUser) {
@@ -103,6 +118,28 @@ final class FileListViewModel {
     }
 
     private func loadChildren(for url: URL) async {
+        let scheme = url.scheme
+        if scheme == "network" {
+            // Expanding a network host — enumerate its shares
+            let host = url.host() ?? ""
+            guard !host.isEmpty else { return }
+            let creds = storedCredentials[host]
+            let result = await networkService.enumerateShares(on: host, credentials: creds)
+            switch result {
+            case .success:
+                childItems[url] = networkService.sharesAsFileItems(for: host)
+            case .authRequired:
+                // Need auth to list shares — prompt, then retry
+                pendingAuthHostname = host
+                pendingMountURL = nil
+                showAuthSheet = true
+                expandedFolders.remove(url)
+            case .error:
+                expandedFolders.remove(url)
+            }
+            return
+        }
+
         do {
             let children = try await fileSystemService.loadContents(
                 of: url, showHiddenFiles: showHiddenFiles, sortedBy: sortCriteria
@@ -114,7 +151,15 @@ final class FileListViewModel {
     }
 
     func openItem(_ item: FileItem) {
-        if item.isDirectory {
+        let scheme = item.url.scheme
+        if scheme == "network" {
+            navigate(to: item.url)
+        } else if scheme == "smb" || scheme == "afp" {
+            // Use stored credentials from the enumeration phase if available
+            let host = item.url.host() ?? ""
+            let creds = storedCredentials[host]
+            Task { await attemptMount(item.url, credentials: creds) }
+        } else if item.isDirectory {
             navigate(to: item.url)
         } else {
             NSWorkspace.shared.open(item.url)
@@ -162,6 +207,48 @@ final class FileListViewModel {
         isLoading = true
         errorMessage = nil
         needsFullDiskAccess = false
+
+        if currentURL.scheme == "network" {
+            await reloadNetwork()
+        } else {
+            await reloadFileSystem()
+        }
+
+        isLoading = false
+    }
+
+    private func reloadNetwork(credentials: NetworkCredentials? = nil) async {
+        let host = currentURL.host() ?? ""
+        if host.isEmpty {
+            networkService.startDiscovery()
+            // Brief delay to let Bonjour discover hosts
+            try? await Task.sleep(for: .milliseconds(1500))
+            items = networkService.hostsAsFileItems()
+        } else {
+            let result = await networkService.enumerateShares(on: host, credentials: credentials)
+            switch result {
+            case .success(let shares):
+                // Store credentials for later use when mounting shares on this host
+                if let creds = credentials {
+                    storedCredentials[host] = creds
+                }
+                items = networkService.sharesAsFileItems(for: host)
+                if shares.isEmpty {
+                    errorMessage = "No shares found on \(host)"
+                }
+            case .authRequired:
+                items = []
+                pendingAuthHostname = host
+                pendingMountURL = nil
+                showAuthSheet = true
+            case .error(let message):
+                items = []
+                errorMessage = message
+            }
+        }
+    }
+
+    private func reloadFileSystem() async {
         do {
             let loaded = try await fileSystemService.loadContents(
                 of: currentURL,
@@ -179,7 +266,51 @@ final class FileListViewModel {
             }
             items = []
         }
-        isLoading = false
+    }
+
+    // MARK: - Network Mounting
+
+    func attemptMount(_ url: URL, credentials: NetworkCredentials? = nil) async {
+        let mountPoint = await networkService.mountShare(url: url, credentials: credentials)
+        if let mountPoint {
+            navigate(to: mountPoint)
+        } else {
+            pendingMountURL = url
+            showAuthSheet = true
+        }
+    }
+
+    func authenticateAndMount(credentials: NetworkCredentials) {
+        if let hostname = pendingAuthHostname {
+            // Auth was for share enumeration
+            pendingAuthHostname = nil
+            Task {
+                isLoading = true
+                await reloadNetwork(credentials: credentials)
+                isLoading = false
+            }
+        } else if let url = pendingMountURL {
+            // Auth was for mounting a share
+            pendingMountURL = nil
+            Task { await attemptMount(url, credentials: credentials) }
+        }
+    }
+
+    func connectToServer(urlString: String) {
+        let trimmed = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: trimmed),
+              url.scheme == "smb" || url.scheme == "afp" else {
+            errorMessage = "Invalid server URL. Use smb:// or afp:// format."
+            return
+        }
+        // Save to recent servers
+        var recents = UserDefaults.standard.stringArray(forKey: "recentServers") ?? []
+        recents.removeAll { $0 == trimmed }
+        recents.insert(trimmed, at: 0)
+        if recents.count > 10 { recents = Array(recents.prefix(10)) }
+        UserDefaults.standard.set(recents, forKey: "recentServers")
+
+        Task { await attemptMount(url) }
     }
 
     func openFullDiskAccessSettings() {
