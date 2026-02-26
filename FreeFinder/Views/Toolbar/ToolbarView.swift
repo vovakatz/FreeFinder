@@ -7,16 +7,6 @@ struct ToolbarView: View {
     var canGoForward: Bool = false
     var onGoBack: () -> Void = {}
     var onGoForward: () -> Void = {}
-    var showLeftSidebar: Bool = true
-    var onToggleLeftSidebar: () -> Void = {}
-    var showRightPanel: Bool = true
-    var onToggleRightPanel: () -> Void = {}
-    var showBottomPanel: Bool = true
-    var onToggleBottomPanel: () -> Void = {}
-    var viewMode: ViewMode = .list
-    var onSetViewMode: (ViewMode) -> Void = { _ in }
-    var showHiddenFiles: Bool = false
-    var onToggleHidden: () -> Void = {}
 
     var body: some View {
         HStack(spacing: 6) {
@@ -53,48 +43,6 @@ struct ToolbarView: View {
             }
 
             Spacer()
-
-            Button(action: { onSetViewMode(.list) }) {
-                Image(systemName: "list.dash")
-                    .foregroundStyle(viewMode == .list ? Color.accentColor : Color.secondary)
-            }
-            .buttonStyle(.borderless)
-            .help("List view")
-
-            Button(action: { onSetViewMode(.icons) }) {
-                Image(systemName: "square.grid.2x2")
-                    .foregroundStyle(viewMode == .icons ? Color.accentColor : Color.secondary)
-            }
-            .buttonStyle(.borderless)
-            .help("Icon view")
-
-            Divider().frame(height: 16).padding(.horizontal, 4)
-
-            Button(action: onToggleLeftSidebar) {
-                Image(systemName: "sidebar.left")
-            }
-            .buttonStyle(.borderless)
-            .help(showLeftSidebar ? "Hide left sidebar" : "Show left sidebar")
-
-            Button(action: onToggleBottomPanel) {
-                Image(systemName: "rectangle.bottomthird.inset.filled")
-            }
-            .buttonStyle(.borderless)
-            .help(showBottomPanel ? "Hide bottom panel" : "Show bottom panel")
-
-            Button(action: onToggleRightPanel) {
-                Image(systemName: "sidebar.right")
-            }
-            .buttonStyle(.borderless)
-            .help(showRightPanel ? "Hide right panel" : "Show right panel")
-
-            Divider().frame(height: 16).padding(.horizontal, 4)
-
-            Button(action: onToggleHidden) {
-                Image(systemName: showHiddenFiles ? "eye" : "eye.slash")
-            }
-            .buttonStyle(.borderless)
-            .help(showHiddenFiles ? "Hide hidden files" : "Show hidden files")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)

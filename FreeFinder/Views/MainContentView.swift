@@ -2,12 +2,7 @@ import SwiftUI
 
 struct MainContentView: View {
     @Bindable var viewModel: FileListViewModel
-    var showLeftSidebar: Bool = true
-    var onToggleLeftSidebar: () -> Void = {}
-    var showRightPanel: Bool = true
-    var onToggleRightPanel: () -> Void = {}
     var showBottomPanel: Bool = true
-    var onToggleBottomPanel: () -> Void = {}
     @Binding var bottomPanelWidget: WidgetType
     @Binding var selectedItems: Set<URL>
 
@@ -26,20 +21,7 @@ struct MainContentView: View {
                 canGoBack: viewModel.canGoBack,
                 canGoForward: viewModel.canGoForward,
                 onGoBack: { viewModel.goBack() },
-                onGoForward: { viewModel.goForward() },
-                showLeftSidebar: showLeftSidebar,
-                onToggleLeftSidebar: onToggleLeftSidebar,
-                showRightPanel: showRightPanel,
-                onToggleRightPanel: onToggleRightPanel,
-                showBottomPanel: showBottomPanel,
-                onToggleBottomPanel: onToggleBottomPanel,
-                viewMode: viewModel.viewMode,
-                onSetViewMode: { viewModel.viewMode = $0 },
-                showHiddenFiles: viewModel.showHiddenFiles,
-                onToggleHidden: {
-                    viewModel.showHiddenFiles.toggle()
-                    Task { await viewModel.reload() }
-                }
+                onGoForward: { viewModel.goForward() }
             )
             Divider()
 

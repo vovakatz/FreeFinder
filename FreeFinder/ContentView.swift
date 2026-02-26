@@ -19,18 +19,55 @@ struct ContentView: View {
             }
             MainContentView(
                 viewModel: fileListVM,
-                showLeftSidebar: showLeftSidebar,
-                onToggleLeftSidebar: { showLeftSidebar.toggle() },
-                showRightPanel: showRightPanel,
-                onToggleRightPanel: { showRightPanel.toggle() },
                 showBottomPanel: showBottomPanel,
-                onToggleBottomPanel: { showBottomPanel.toggle() },
                 bottomPanelWidget: $bottomPanelWidget,
                 selectedItems: $fileListVM.selectedItems
             )
                 .frame(minWidth: 400)
             if showRightPanel {
                 RightPanelView(selectedItems: $fileListVM.selectedItems, currentDirectory: fileListVM.currentURL, topWidget: $rightTopWidget, bottomWidget: $rightBottomWidget)
+            }
+        }
+        .toolbarBackground(Color(red: 0xE5/255.0, green: 0xE5/255.0, blue: 0xE5/255.0), for: .windowToolbar)
+        .toolbarBackgroundVisibility(.visible, for: .windowToolbar)
+        .toolbar {
+            ToolbarItemGroup(placement: .automatic) {
+                Button { fileListVM.viewMode = .list } label: {
+                    Image(systemName: "list.dash")
+                        .foregroundStyle(fileListVM.viewMode == .list ? Color.accentColor : Color.secondary)
+                }
+                .help("List view")
+
+                Button { fileListVM.viewMode = .icons } label: {
+                    Image(systemName: "square.grid.2x2")
+                        .foregroundStyle(fileListVM.viewMode == .icons ? Color.accentColor : Color.secondary)
+                }
+                .help("Icon view")
+
+                Button {
+                    fileListVM.showHiddenFiles.toggle()
+                    Task { await fileListVM.reload() }
+                } label: {
+                    Image(systemName: fileListVM.showHiddenFiles ? "eye" : "eye.slash")
+                }
+                .help(fileListVM.showHiddenFiles ? "Hide hidden files" : "Show hidden files")
+            }
+
+            ToolbarItemGroup(placement: .primaryAction) {
+                Button { showLeftSidebar.toggle() } label: {
+                    Image(systemName: "sidebar.left")
+                }
+                .help(showLeftSidebar ? "Hide left sidebar" : "Show left sidebar")
+
+                Button { showBottomPanel.toggle() } label: {
+                    Image(systemName: "rectangle.bottomthird.inset.filled")
+                }
+                .help(showBottomPanel ? "Hide bottom panel" : "Show bottom panel")
+
+                Button { showRightPanel.toggle() } label: {
+                    Image(systemName: "sidebar.right")
+                }
+                .help(showRightPanel ? "Hide right panel" : "Show right panel")
             }
         }
         .onChange(of: sidebarSelection) { _, newURL in
