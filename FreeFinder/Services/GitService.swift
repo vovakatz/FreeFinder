@@ -39,6 +39,10 @@ class GitService {
     var currentBranch: String = ""
     var statusEntries: [GitStatusEntry] = []
     var recentCommits: [GitCommitInfo] = []
+    var aheadCount: Int = 0
+    var behindCount: Int = 0
+    var hasRemote: Bool = false
+    var isPushing = false
     var lastError: String?
     var isLoading = false
 
@@ -68,6 +72,7 @@ class GitService {
         }
 
         currentBranch = loadBranch(at: root)
+        loadRemoteStatus(at: root)
         statusEntries = loadStatus(at: root)
         recentCommits = loadLog(at: root)
         isLoading = false
@@ -105,9 +110,20 @@ class GitService {
         if exitCode == 0 {
             statusEntries = loadStatus(at: root)
             recentCommits = loadLog(at: root)
+            loadRemoteStatus(at: root)
             return true
         }
         return false
+    }
+
+    func push() {
+        guard let root = repoRoot else { return }
+        isPushing = true
+        let (_, exitCode) = runGit(["push"], at: root)
+        isPushing = false
+        if exitCode == 0 {
+            loadRemoteStatus(at: root)
+        }
     }
 
     // MARK: - Read Operations (git CLI)
@@ -122,6 +138,25 @@ class GitService {
         let (output, exitCode) = runGit(["rev-parse", "--abbrev-ref", "HEAD"], at: root)
         guard exitCode == 0 else { return "HEAD" }
         return output.isEmpty ? "HEAD" : output
+    }
+
+    private func loadRemoteStatus(at root: URL) {
+        // Check if a remote tracking branch exists
+        let (upstream, upstreamExit) = runGit(
+            ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"],
+            at: root
+        )
+        hasRemote = upstreamExit == 0 && !upstream.isEmpty
+
+        if hasRemote {
+            let (ahead, _) = runGit(["rev-list", "--count", "@{u}..HEAD"], at: root)
+            aheadCount = Int(ahead) ?? 0
+            let (behind, _) = runGit(["rev-list", "--count", "HEAD..@{u}"], at: root)
+            behindCount = Int(behind) ?? 0
+        } else {
+            aheadCount = 0
+            behindCount = 0
+        }
     }
 
     private func loadStatus(at root: URL) -> [GitStatusEntry] {

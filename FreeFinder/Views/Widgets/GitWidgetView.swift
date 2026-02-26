@@ -70,6 +70,18 @@ struct GitWidgetView: View {
             Text(gitService.currentBranch)
                 .font(.system(size: 11, weight: .medium, design: .monospaced))
             Spacer()
+            if gitService.hasRemote {
+                if gitService.aheadCount > 0 {
+                    Text("\(gitService.aheadCount)↑")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(.orange)
+                }
+                if gitService.behindCount > 0 {
+                    Text("\(gitService.behindCount)↓")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(.blue)
+                }
+            }
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
@@ -160,6 +172,26 @@ struct GitWidgetView: View {
                 }
                 .controlSize(.small)
                 .disabled(gitService.stagedEntries.isEmpty || commitMessage.isEmpty)
+
+                if gitService.hasRemote {
+                    Button {
+                        gitService.push()
+                    } label: {
+                        HStack(spacing: 3) {
+                            if gitService.isPushing {
+                                ProgressView()
+                                    .controlSize(.mini)
+                                    .scaleEffect(0.6)
+                            }
+                            Text("Push")
+                            if gitService.aheadCount > 0 {
+                                Text("(\(gitService.aheadCount))")
+                            }
+                        }
+                    }
+                    .controlSize(.small)
+                    .disabled(gitService.aheadCount == 0 || gitService.isPushing)
+                }
             }
         }
         .padding(.horizontal, 8)
