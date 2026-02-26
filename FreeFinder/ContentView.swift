@@ -7,6 +7,9 @@ struct ContentView: View {
     @State private var showLeftSidebar: Bool = true
     @State private var showRightPanel: Bool = true
     @State private var showBottomPanel: Bool = false
+    @State private var rightTopWidget: WidgetType = .info
+    @State private var rightBottomWidget: WidgetType = .preview
+    @State private var bottomPanelWidget: WidgetType = .terminal
 
     var body: some View {
         HSplitView {
@@ -21,11 +24,13 @@ struct ContentView: View {
                 showRightPanel: showRightPanel,
                 onToggleRightPanel: { showRightPanel.toggle() },
                 showBottomPanel: showBottomPanel,
-                onToggleBottomPanel: { showBottomPanel.toggle() }
+                onToggleBottomPanel: { showBottomPanel.toggle() },
+                bottomPanelWidget: $bottomPanelWidget,
+                selectedItems: $fileListVM.selectedItems
             )
                 .frame(minWidth: 400)
             if showRightPanel {
-                RightPanelView(selectedItems: fileListVM.selectedItems)
+                RightPanelView(selectedItems: $fileListVM.selectedItems, currentDirectory: fileListVM.currentURL, topWidget: $rightTopWidget, bottomWidget: $rightBottomWidget)
             }
         }
         .onChange(of: sidebarSelection) { _, newURL in

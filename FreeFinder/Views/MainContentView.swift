@@ -8,6 +8,8 @@ struct MainContentView: View {
     var onToggleRightPanel: () -> Void = {}
     var showBottomPanel: Bool = true
     var onToggleBottomPanel: () -> Void = {}
+    @Binding var bottomPanelWidget: WidgetType
+    @Binding var selectedItems: Set<URL>
 
     @State private var bottomPanelHeight: CGFloat?
     @State private var totalHeight: CGFloat = 0
@@ -79,7 +81,7 @@ struct MainContentView: View {
                             set: { bottomPanelHeight = $0 }
                         ), totalHeight: geo.size.height)
 
-                        BottomPanelView(currentDirectory: viewModel.currentURL)
+                        BottomPanelView(currentDirectory: viewModel.currentURL, selectedItems: $selectedItems, widgetType: $bottomPanelWidget)
                             .frame(height: effectiveBottomHeight)
                     }
                 }

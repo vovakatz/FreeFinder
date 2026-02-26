@@ -1,13 +1,16 @@
 import SwiftUI
 
 struct RightPanelView: View {
-    let selectedItems: Set<URL>
+    @Binding var selectedItems: Set<URL>
+    let currentDirectory: URL
+    @Binding var topWidget: WidgetType
+    @Binding var bottomWidget: WidgetType
 
     var body: some View {
         VSplitView {
-            InfoWidgetView(selectedURLs: selectedItems)
+            WidgetSlotView(widgetType: $topWidget, selectedURLs: $selectedItems, currentDirectory: currentDirectory)
                 .frame(minHeight: 50, idealHeight: 200, maxHeight: .infinity)
-            PreviewWidgetView(selectedURLs: selectedItems)
+            WidgetSlotView(widgetType: $bottomWidget, selectedURLs: $selectedItems, currentDirectory: currentDirectory)
                 .frame(minHeight: 50, idealHeight: 200, maxHeight: .infinity)
         }
         .background(.white)

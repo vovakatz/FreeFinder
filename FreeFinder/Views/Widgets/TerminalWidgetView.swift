@@ -2,25 +2,20 @@ import SwiftUI
 
 struct TerminalWidgetView: View {
     let currentDirectory: URL
+    @Binding var widgetType: WidgetType
     @State private var session = TerminalSession()
 
     var body: some View {
         VStack(spacing: 0) {
-            ZStack {
-                WidgetHeaderView(title: "Terminal")
-                HStack {
-                    Spacer()
-                    Button {
-                        session.clearTerminal()
-                    } label: {
-                        Image(systemName: "trash")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.trailing, 8)
-                    .padding(.bottom, 1)
+            WidgetHeaderView(widgetType: $widgetType) {
+                Button {
+                    session.clearTerminal()
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
                 }
+                .buttonStyle(.plain)
             }
             .fixedSize(horizontal: false, vertical: true)
 

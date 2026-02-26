@@ -120,11 +120,12 @@ private func mountAndDevice(for path: String) -> (mount: String, device: String)
 
 struct InfoWidgetView: View {
     let selectedURLs: Set<URL>
+    @Binding var widgetType: WidgetType
     @State private var metadata: FileMetadata?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            WidgetHeaderView(title: "Info")
+            WidgetHeaderView(widgetType: $widgetType)
                 .fixedSize(horizontal: false, vertical: true)
 
             Group {

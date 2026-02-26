@@ -12,6 +12,7 @@ private enum PreviewContent {
 
 struct PreviewWidgetView: View {
     let selectedURLs: Set<URL>
+    @Binding var widgetType: WidgetType
     @State private var content: PreviewContent = .none
     @State private var editableText = ""
     @State private var originalText = ""
@@ -72,33 +73,23 @@ struct PreviewWidgetView: View {
     }
 
     private var previewHeader: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Spacer()
-                Text("Preview")
-                    .font(.system(size: 11, weight: .semibold))
-                Spacer()
-                if isTextContent {
-                    let hasChanges = editableText != originalText
-                    Button {
-                        saveFile()
-                    } label: {
-                        Text("Save")
-                            .font(.system(size: 10, weight: .semibold))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 2)
-                            .background(hasChanges ? Color.accentColor : Color.gray.opacity(0.3))
-                            .foregroundStyle(hasChanges ? .white : .secondary)
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(!hasChanges)
+        WidgetHeaderView(widgetType: $widgetType) {
+            if isTextContent {
+                let hasChanges = editableText != originalText
+                Button {
+                    saveFile()
+                } label: {
+                    Text("Save")
+                        .font(.system(size: 10, weight: .semibold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(hasChanges ? Color.accentColor : Color.gray.opacity(0.3))
+                        .foregroundStyle(hasChanges ? .white : .secondary)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
                 }
+                .buttonStyle(.plain)
+                .disabled(!hasChanges)
             }
-            .padding(.vertical, 6)
-            .padding(.horizontal, 8)
-            .background(Color.black.opacity(0.08))
-            Divider()
         }
     }
 
