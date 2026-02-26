@@ -7,6 +7,9 @@ struct ColumnHeaderView: View {
     @Binding var dateWidth: CGFloat
     @Binding var sizeWidth: CGFloat
     @Binding var kindWidth: CGFloat
+    var effectiveDateWidth: CGFloat = 150
+    var effectiveSizeWidth: CGFloat = 80
+    var effectiveKindWidth: CGFloat = 120
 
     @State private var startWidths: (date: CGFloat, size: CGFloat, kind: CGFloat)?
 
@@ -21,7 +24,7 @@ struct ColumnHeaderView: View {
             }
 
             headerButton("Date Modified", field: .dateModified)
-                .frame(width: dateWidth, alignment: .leading)
+                .frame(width: effectiveDateWidth, alignment: .leading)
 
             columnResizeHandle { translation in
                 guard let start = startWidths else { return }
@@ -30,7 +33,7 @@ struct ColumnHeaderView: View {
             }
 
             headerButton("Size", field: .size)
-                .frame(width: sizeWidth, alignment: .trailing)
+                .frame(width: effectiveSizeWidth, alignment: .trailing)
 
             columnResizeHandle { translation in
                 guard let start = startWidths else { return }
@@ -39,7 +42,7 @@ struct ColumnHeaderView: View {
             }
 
             headerButton("Kind", field: .kind)
-                .frame(width: kindWidth, alignment: .leading)
+                .frame(width: effectiveKindWidth, alignment: .leading)
         }
         .font(.system(size: 11, weight: .medium))
         .foregroundStyle(.secondary)

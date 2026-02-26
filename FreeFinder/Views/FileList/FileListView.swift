@@ -59,98 +59,119 @@ struct FileListView: View {
             }
         }
 
-        VStack(spacing: 0) {
-            if viewMode == .list {
-                ColumnHeaderView(
-                    sortCriteria: sortCriteria,
-                    onSort: onSort,
-                    dateWidth: $dateWidth,
-                    sizeWidth: $sizeWidth,
-                    kindWidth: $kindWidth
-                )
-                Divider()
-            }
+        GeometryReader { geo in
+            let effWidths = effectiveWidths(for: geo.size.width)
 
-            if isLoading {
-                Spacer()
-                ProgressView()
-                Spacer()
-            } else if let error = errorMessage {
-                Spacer()
-                VStack(spacing: 12) {
-                    Image(systemName: needsFullDiskAccess ? "lock.shield" : "exclamationmark.triangle")
-                        .font(.largeTitle)
-                        .foregroundStyle(.secondary)
-                    Text(error)
-                        .foregroundStyle(.secondary)
-                    if needsFullDiskAccess {
-                        Button("Open System Settings") {
-                            onOpenFullDiskAccessSettings()
+            VStack(spacing: 0) {
+                if viewMode == .list {
+                    ColumnHeaderView(
+                        sortCriteria: sortCriteria,
+                        onSort: onSort,
+                        dateWidth: $dateWidth,
+                        sizeWidth: $sizeWidth,
+                        kindWidth: $kindWidth,
+                        effectiveDateWidth: effWidths.date,
+                        effectiveSizeWidth: effWidths.size,
+                        effectiveKindWidth: effWidths.kind
+                    )
+                    Divider()
+                }
+
+                if isLoading {
+                    Spacer()
+                    ProgressView()
+                    Spacer()
+                } else if let error = errorMessage {
+                    Spacer()
+                    VStack(spacing: 12) {
+                        Image(systemName: needsFullDiskAccess ? "lock.shield" : "exclamationmark.triangle")
+                            .font(.largeTitle)
+                            .foregroundStyle(.secondary)
+                        Text(error)
+                            .foregroundStyle(.secondary)
+                        if needsFullDiskAccess {
+                            Button("Open System Settings") {
+                                onOpenFullDiskAccessSettings()
+                            }
                         }
                     }
+                    Spacer()
+                } else if displayItems.isEmpty {
+                    Spacer()
+                    VStack(spacing: 8) {
+                        Image(systemName: "folder")
+                            .font(.largeTitle)
+                            .foregroundStyle(.secondary)
+                        Text("This folder is empty")
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                } else {
+                    contentView(effWidths: effWidths)
                 }
-                Spacer()
-            } else if displayItems.isEmpty {
-                Spacer()
-                VStack(spacing: 8) {
-                    Image(systemName: "folder")
-                        .font(.largeTitle)
-                        .foregroundStyle(.secondary)
-                    Text("This folder is empty")
-                        .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .alert("Delete Permanently?", isPresented: $showDeleteConfirmation) {
+                Button("Delete", role: .destructive) {
+                    onConfirmDelete()
                 }
-                Spacer()
-            } else {
-                contentView
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This will permanently delete the selected item(s). This action cannot be undone.")
             }
-        }
-        .alert("Delete Permanently?", isPresented: $showDeleteConfirmation) {
-            Button("Delete", role: .destructive) {
-                onConfirmDelete()
+            .alert("Overwrite Existing Items?", isPresented: $showOverwriteConfirmation) {
+                Button("Overwrite", role: .destructive) {
+                    onConfirmOverwritePaste()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                let names = conflictingNames.joined(separator: ", ")
+                Text("The destination already contains: \(names). Do you want to overwrite?")
             }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This will permanently delete the selected item(s). This action cannot be undone.")
-        }
-        .alert("Overwrite Existing Items?", isPresented: $showOverwriteConfirmation) {
-            Button("Overwrite", role: .destructive) {
-                onConfirmOverwritePaste()
+            .sheet(isPresented: $showNewFolderSheet) {
+                NewItemSheet(title: "New Folder", placeholder: "Folder name") { name in
+                    onCreateFolder(name)
+                }
             }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            let names = conflictingNames.joined(separator: ", ")
-            Text("The destination already contains: \(names). Do you want to overwrite?")
-        }
-        .sheet(isPresented: $showNewFolderSheet) {
-            NewItemSheet(title: "New Folder", placeholder: "Folder name") { name in
-                onCreateFolder(name)
+            .sheet(isPresented: $showNewFileSheet) {
+                NewItemSheet(title: "New File", placeholder: "File name") { name in
+                    onCreateFile(name)
+                }
             }
+            .onAppear { doubleClickProxy.startMonitoring() }
+            .onDisappear { doubleClickProxy.stopMonitoring() }
         }
-        .sheet(isPresented: $showNewFileSheet) {
-            NewItemSheet(title: "New File", placeholder: "File name") { name in
-                onCreateFile(name)
-            }
+    }
+
+    private func effectiveWidths(for containerWidth: CGFloat) -> (date: CGFloat, size: CGFloat, kind: CGFloat) {
+        let nameMinWidth: CGFloat = 150
+        let spacers: CGFloat = 24 + 16
+        let secondaryTotal = dateWidth + sizeWidth + kindWidth
+        let needed = nameMinWidth + secondaryTotal + spacers
+        guard containerWidth > 0, containerWidth < needed else {
+            return (dateWidth, sizeWidth, kindWidth)
         }
-        .onAppear { doubleClickProxy.startMonitoring() }
-        .onDisappear { doubleClickProxy.stopMonitoring() }
+        let available = max(0, containerWidth - nameMinWidth - spacers)
+        let scale = available / secondaryTotal
+        return (dateWidth * scale, sizeWidth * scale, kindWidth * scale)
     }
 
     @ViewBuilder
-    private var contentView: some View {
+    private func contentView(effWidths: (date: CGFloat, size: CGFloat, kind: CGFloat)) -> some View {
         if viewMode == .list {
-            listView
+            listView(effWidths: effWidths)
         } else {
             gridView
         }
     }
 
-    private var listView: some View {
+    private func listView(effWidths: (date: CGFloat, size: CGFloat, kind: CGFloat)) -> some View {
         List(displayItems, selection: $selection) { displayItem in
             FileRowView(
                 item: displayItem.fileItem,
-                dateWidth: dateWidth,
-                sizeWidth: sizeWidth,
-                kindWidth: kindWidth,
+                dateWidth: effWidths.date,
+                sizeWidth: effWidths.size,
+                kindWidth: effWidths.kind,
                 depth: displayItem.depth,
                 isExpanded: expandedFolders.contains(displayItem.fileItem.url),
                 onToggleExpand: { onToggleExpand(displayItem.fileItem) },
