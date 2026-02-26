@@ -9,6 +9,13 @@ struct MainContentView: View {
     var showBottomPanel: Bool = true
     var onToggleBottomPanel: () -> Void = {}
 
+    @State private var bottomPanelHeight: CGFloat?
+    @State private var totalHeight: CGFloat = 0
+
+    private var effectiveBottomHeight: CGFloat {
+        bottomPanelHeight ?? (totalHeight * 0.3)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             ToolbarView(
@@ -34,8 +41,9 @@ struct MainContentView: View {
             )
             Divider()
 
-            VSplitView {
-                GeometryReader { _ in
+            GeometryReader { geo in
+                let _ = updateTotalHeight(geo.size.height)
+                VStack(spacing: 0) {
                     FileListView(
                         displayItems: viewModel.displayItems,
                         sortCriteria: viewModel.sortCriteria,
@@ -64,11 +72,16 @@ struct MainContentView: View {
                         showDeleteConfirmation: $viewModel.showDeleteConfirmation,
                         selection: $viewModel.selectedItems
                     )
-                }
-                .frame(minHeight: 100)
 
-                if showBottomPanel {
-                    BottomPanelView(currentDirectory: viewModel.currentURL)
+                    if showBottomPanel {
+                        SplitDragHandle(height: Binding(
+                            get: { effectiveBottomHeight },
+                            set: { bottomPanelHeight = $0 }
+                        ), totalHeight: geo.size.height)
+
+                        BottomPanelView(currentDirectory: viewModel.currentURL)
+                            .frame(height: effectiveBottomHeight)
+                    }
                 }
             }
 
@@ -79,5 +92,45 @@ struct MainContentView: View {
                 volumeStatusText: viewModel.volumeStatusText
             )
         }
+    }
+
+    private func updateTotalHeight(_ h: CGFloat) {
+        if totalHeight != h {
+            DispatchQueue.main.async { totalHeight = h }
+        }
+    }
+}
+
+private struct SplitDragHandle: View {
+    @Binding var height: CGFloat
+    let totalHeight: CGFloat
+
+    @State private var dragStartHeight: CGFloat?
+
+    var body: some View {
+        Rectangle()
+            .fill(Color(nsColor: .separatorColor))
+            .frame(height: 5)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 1, coordinateSpace: .global)
+                    .onChanged { value in
+                        if dragStartHeight == nil {
+                            dragStartHeight = height
+                        }
+                        let newHeight = (dragStartHeight ?? height) - value.translation.height
+                        height = max(50, min(newHeight, totalHeight - 100))
+                    }
+                    .onEnded { _ in
+                        dragStartHeight = nil
+                    }
+            )
+            .onHover { hovering in
+                if hovering {
+                    NSCursor.resizeUpDown.push()
+                } else {
+                    NSCursor.pop()
+                }
+            }
     }
 }

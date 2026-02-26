@@ -5,7 +5,7 @@ struct BottomPanelView: View {
 
     var body: some View {
         TerminalWidgetView(currentDirectory: currentDirectory)
-            .frame(maxWidth: .infinity, minHeight: 50, idealHeight: 150, maxHeight: .infinity)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(.white)
     }
 }
