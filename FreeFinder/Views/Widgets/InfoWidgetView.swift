@@ -122,6 +122,8 @@ struct InfoWidgetView: View {
     let selectedURLs: Set<URL>
     @Binding var widgetType: WidgetType
     @State private var metadata: FileMetadata?
+    @State private var calculatedFolderSize: Int64?
+    @State private var isCalculatingSize = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -149,16 +151,20 @@ struct InfoWidgetView: View {
                             if !meta.uti.isEmpty {
                                 infoRow("UTI", meta.uti)
                             }
-                            infoRow("Size", meta.sizeLogical.formattedFileSize)
-                            HStack(alignment: .top, spacing: 4) {
-                                Text("")
-                                    .frame(width: 70, alignment: .trailing)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Data: \(meta.sizeLogical) bytes")
-                                    Text("Physical: \(meta.sizePhysical) bytes")
+                            if let url = selectedURLs.first, url.isDirectory {
+                                folderSizeRow
+                            } else {
+                                infoRow("Size", meta.sizeLogical.formattedFileSize)
+                                HStack(alignment: .top, spacing: 4) {
+                                    Text("")
+                                        .frame(width: 70, alignment: .trailing)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Data: \(meta.sizeLogical) bytes")
+                                        Text("Physical: \(meta.sizePhysical) bytes")
+                                    }
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.secondary)
                                 }
-                                .font(.system(size: 10))
-                                .foregroundStyle(.secondary)
                             }
                             Divider().padding(.vertical, 4)
                             if let d = meta.created {
@@ -221,7 +227,63 @@ struct InfoWidgetView: View {
         .onChange(of: selectedURLs) { _, _ in fetchMetadata() }
     }
 
+    @ViewBuilder
+    private var folderSizeRow: some View {
+        HStack(alignment: .top, spacing: 4) {
+            Text("Size")
+                .frame(width: 70, alignment: .trailing)
+                .foregroundStyle(.secondary)
+            if isCalculatingSize {
+                ProgressView()
+                    .controlSize(.small)
+                    .scaleEffect(0.7)
+            } else if let size = calculatedFolderSize {
+                Text(size.formattedFileSize)
+                    .textSelection(.enabled)
+            } else {
+                Button("Calculate") {
+                    guard let url = selectedURLs.first else { return }
+                    calculateFolderSize(url)
+                }
+                .buttonStyle(.link)
+                .controlSize(.small)
+            }
+        }
+        .font(.system(size: 11))
+    }
+
+    private func calculateFolderSize(_ url: URL) {
+        isCalculatingSize = true
+        Task.detached {
+            let size = Self.totalSize(of: url)
+            await MainActor.run {
+                calculatedFolderSize = size
+                isCalculatingSize = false
+            }
+        }
+    }
+
+    private static func totalSize(of url: URL) -> Int64 {
+        let fm = FileManager.default
+        let keys: [URLResourceKey] = [.fileSizeKey, .isDirectoryKey]
+        guard let enumerator = fm.enumerator(
+            at: url,
+            includingPropertiesForKeys: keys,
+            options: [.skipsHiddenFiles]
+        ) else { return 0 }
+
+        var total: Int64 = 0
+        for case let fileURL as URL in enumerator {
+            guard let values = try? fileURL.resourceValues(forKeys: Set(keys)),
+                  values.isDirectory != true else { continue }
+            total += Int64(values.fileSize ?? 0)
+        }
+        return total
+    }
+
     private func fetchMetadata() {
+        calculatedFolderSize = nil
+        isCalculatingSize = false
         if selectedURLs.count == 1, let url = selectedURLs.first {
             metadata = FileMetadata.fetch(from: url)
         } else {

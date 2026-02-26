@@ -338,6 +338,24 @@ struct FileListView: View {
                 NSWorkspace.shared.activateFileViewerSelecting([displayItem.fileItem.url])
             }
 
+            Menu("Copy Path/Reference") {
+                Button("Item Name") {
+                    copyToPasteboard(displayItem.fileItem.name)
+                }
+                Button("Path from Root") {
+                    copyToPasteboard(displayItem.fileItem.url.path(percentEncoded: false))
+                }
+                let fullPath = displayItem.fileItem.url.path(percentEncoded: false)
+                let homePath = FileManager.default.homeDirectoryForCurrentUser.path(percentEncoded: false)
+                let isUnderHome = fullPath.hasPrefix(homePath)
+                Button("Path from Home Dir") {
+                    let relative = String(fullPath.dropFirst(homePath.count))
+                    let trimmed = relative.hasPrefix("/") ? String(relative.dropFirst()) : relative
+                    copyToPasteboard("~/\(trimmed)")
+                }
+                .disabled(!isUnderHome)
+            }
+
             Divider()
 
             Button("Rename") {
@@ -379,6 +397,12 @@ struct FileListView: View {
                 onRequestDelete(targetURLs)
             }
         }
+    }
+
+    private func copyToPasteboard(_ string: String) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(string, forType: .string)
     }
 
     private func commitRename(for url: URL) {
