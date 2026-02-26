@@ -15,6 +15,8 @@ struct WidgetSlotView: View {
             TerminalWidgetView(currentDirectory: currentDirectory, widgetType: $widgetType)
         case .images:
             ImagesWidgetView(currentDirectory: currentDirectory, selectedURLs: $selectedURLs, widgetType: $widgetType)
+        case .git:
+            GitWidgetView(currentDirectory: currentDirectory, widgetType: $widgetType)
         }
     }
 }

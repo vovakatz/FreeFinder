@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xcodebuild build -scheme FreeFinder -destination 'platform=macOS' 2>&1 | tail -60)",
+      "Bash(xcodebuild build -scheme FreeFinder -destination 'platform=macOS' 2>&1 | grep -E \"error:\" | head -20)",
+      "Bash(xcodebuild build -scheme FreeFinder -destination 'platform=macOS' 2>&1 | grep -E \"\\(error:|BUILD\\)\" | head -20)",
+      "Bash(xcodebuild build -scheme FreeFinder -destination 'platform=macOS' 2>&1 | grep -E \"\\(error:|BUILD\\)\" | head -10)",
+      "Bash(xcodebuild build -scheme FreeFinder -destination 'platform=macOS' 2>&1 | tail -30)",
+      "Bash(xcodebuild build -scheme FreeFinder -destination 'platform=macOS' 2>&1 | grep -E 'error:|warning:' | head -20)",
+      "Bash(xcodebuild build -scheme FreeFinder -destination 'platform=macOS' 2>&1 | grep -E 'error:|BUILD' | head -10)",
+      "WebSearch",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:github.com)"
+    ]
+  }
+}
