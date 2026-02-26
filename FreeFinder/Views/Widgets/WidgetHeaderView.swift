@@ -1,17 +1,24 @@
 import SwiftUI
 
-struct WidgetHeaderView<ExtraContent: View>: View {
+struct WidgetHeaderView<LeadingContent: View, ExtraContent: View>: View {
     @Binding var widgetType: WidgetType
+    var leadingButtons: LeadingContent
     var extraButtons: ExtraContent
 
-    init(widgetType: Binding<WidgetType>, @ViewBuilder extraButtons: () -> ExtraContent) {
+    init(
+        widgetType: Binding<WidgetType>,
+        @ViewBuilder leadingButtons: () -> LeadingContent,
+        @ViewBuilder extraButtons: () -> ExtraContent
+    ) {
         self._widgetType = widgetType
+        self.leadingButtons = leadingButtons()
         self.extraButtons = extraButtons()
     }
 
     var body: some View {
         VStack(spacing: 0) {
             HStack {
+                leadingButtons
                 Spacer()
                 Menu {
                     ForEach(WidgetType.allCases) { type in
@@ -37,9 +44,18 @@ struct WidgetHeaderView<ExtraContent: View>: View {
     }
 }
 
-extension WidgetHeaderView where ExtraContent == EmptyView {
+extension WidgetHeaderView where LeadingContent == EmptyView {
+    init(widgetType: Binding<WidgetType>, @ViewBuilder extraButtons: () -> ExtraContent) {
+        self._widgetType = widgetType
+        self.leadingButtons = EmptyView()
+        self.extraButtons = extraButtons()
+    }
+}
+
+extension WidgetHeaderView where LeadingContent == EmptyView, ExtraContent == EmptyView {
     init(widgetType: Binding<WidgetType>) {
         self._widgetType = widgetType
+        self.leadingButtons = EmptyView()
         self.extraButtons = EmptyView()
     }
 }
