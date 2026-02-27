@@ -5,6 +5,8 @@ struct MainContentView: View {
     var showBottomPanel: Bool = true
     @Binding var bottomPanelWidget: WidgetType
     @Binding var selectedItems: Set<URL>
+    var isActive: Bool = true
+    var onActivate: (() -> Void)?
 
     @State private var bottomPanelHeight: CGFloat?
     @State private var totalHeight: CGFloat = 0
@@ -58,6 +60,12 @@ struct MainContentView: View {
                         onCreateFile: { viewModel.createFile(name: $0) },
                         onRename: { viewModel.renameItem(at: $0, to: $1) },
                         showDeleteConfirmation: $viewModel.showDeleteConfirmation,
+                        onDrop: { viewModel.requestMoveItems($0) },
+                        onDropIntoFolder: { urls, folder in viewModel.requestMoveItems(urls, destination: folder) },
+                        onConfirmMove: { viewModel.confirmMoveItems() },
+                        pendingMoveNames: viewModel.pendingMoveNames,
+                        pendingMoveDestinationName: viewModel.pendingMoveDestinationName,
+                        showMoveConfirmation: $viewModel.showMoveConfirmation,
                         selection: $viewModel.selectedItems,
                         showNewFolderSheet: $showNewFolderSheet,
                         showNewFileSheet: $showNewFileSheet
@@ -82,11 +90,70 @@ struct MainContentView: View {
                 volumeStatusText: viewModel.volumeStatusText
             )
         }
+        .overlay(alignment: .top) {
+            if isActive {
+                Color.accentColor
+                    .frame(height: 2)
+            }
+        }
+        .background {
+            MouseDownDetector { onActivate?() }
+        }
     }
 
     private func updateTotalHeight(_ h: CGFloat) {
         if totalHeight != h {
             DispatchQueue.main.async { totalHeight = h }
+        }
+    }
+}
+
+private struct MouseDownDetector: NSViewRepresentable {
+    var onMouseDown: () -> Void
+
+    func makeNSView(context: Context) -> MouseDownNSView {
+        let view = MouseDownNSView()
+        view.onMouseDown = onMouseDown
+        return view
+    }
+
+    func updateNSView(_ nsView: MouseDownNSView, context: Context) {
+        nsView.onMouseDown = onMouseDown
+    }
+
+    class MouseDownNSView: NSView {
+        var onMouseDown: (() -> Void)?
+        private var monitor: Any?
+
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            guard window != nil, monitor == nil else { return }
+            monitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
+                guard let self, let window = self.window, event.window === window else { return event }
+                let locationInView = self.convert(event.locationInWindow, from: nil)
+                if self.bounds.contains(locationInView) {
+                    self.onMouseDown?()
+                }
+                return event
+            }
+        }
+
+        override func removeFromSuperview() {
+            removeMonitor()
+            super.removeFromSuperview()
+        }
+
+        private func removeMonitor() {
+            if let monitor {
+                NSEvent.removeMonitor(monitor)
+                self.monitor = nil
+            }
+        }
+
+        deinit {
+            removeMonitor()
         }
     }
 }

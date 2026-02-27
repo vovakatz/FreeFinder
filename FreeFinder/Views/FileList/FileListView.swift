@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 
 struct FileListView: View {
     let displayItems: [DisplayItem]
@@ -28,6 +29,13 @@ struct FileListView: View {
     var onCreateFile: (String) -> Void = { _ in }
     var onRename: (URL, String) -> Void = { _, _ in }
     @Binding var showDeleteConfirmation: Bool
+
+    var onDrop: ([URL]) -> Void = { _ in }
+    var onDropIntoFolder: ([URL], URL) -> Void = { _, _ in }
+    var onConfirmMove: () -> Void = {}
+    var pendingMoveNames: [String] = []
+    var pendingMoveDestinationName: String = ""
+    @Binding var showMoveConfirmation: Bool
 
     @Binding var selection: Set<FileItem.ID>
     @State private var dateWidth: CGFloat = 150
@@ -78,34 +86,53 @@ struct FileListView: View {
                 }
 
                 if isLoading {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
+                    Color.clear
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .overlay { ProgressView() }
+                        .dropDestination(for: URL.self) { urls, _ in
+                            guard !urls.isEmpty else { return false }
+                            onDrop(urls)
+                            return true
+                        }
                 } else if let error = errorMessage {
-                    Spacer()
-                    VStack(spacing: 12) {
-                        Image(systemName: needsFullDiskAccess ? "lock.shield" : "exclamationmark.triangle")
-                            .font(.largeTitle)
-                            .foregroundStyle(.secondary)
-                        Text(error)
-                            .foregroundStyle(.secondary)
-                        if needsFullDiskAccess {
-                            Button("Open System Settings") {
-                                onOpenFullDiskAccessSettings()
+                    Color.clear
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .overlay {
+                            VStack(spacing: 12) {
+                                Image(systemName: needsFullDiskAccess ? "lock.shield" : "exclamationmark.triangle")
+                                    .font(.largeTitle)
+                                    .foregroundStyle(.secondary)
+                                Text(error)
+                                    .foregroundStyle(.secondary)
+                                if needsFullDiskAccess {
+                                    Button("Open System Settings") {
+                                        onOpenFullDiskAccessSettings()
+                                    }
+                                }
                             }
                         }
-                    }
-                    Spacer()
+                        .dropDestination(for: URL.self) { urls, _ in
+                            guard !urls.isEmpty else { return false }
+                            onDrop(urls)
+                            return true
+                        }
                 } else if displayItems.isEmpty {
-                    Spacer()
-                    VStack(spacing: 8) {
-                        Image(systemName: "folder")
-                            .font(.largeTitle)
-                            .foregroundStyle(.secondary)
-                        Text("This folder is empty")
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
+                    Color.clear
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .overlay {
+                            VStack(spacing: 8) {
+                                Image(systemName: "folder")
+                                    .font(.largeTitle)
+                                    .foregroundStyle(.secondary)
+                                Text("This folder is empty")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .dropDestination(for: URL.self) { urls, _ in
+                            guard !urls.isEmpty else { return false }
+                            onDrop(urls)
+                            return true
+                        }
                 } else {
                     contentView(effWidths: effWidths)
                 }
@@ -127,6 +154,13 @@ struct FileListView: View {
             } message: {
                 let names = conflictingNames.joined(separator: ", ")
                 Text("The destination already contains: \(names). Do you want to overwrite?")
+            }
+            .alert("Move Items?", isPresented: $showMoveConfirmation) {
+                Button("Move") { onConfirmMove() }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                let names = pendingMoveNames.joined(separator: ", ")
+                Text("Move \(names) to \"\(pendingMoveDestinationName)\"?")
             }
             .sheet(isPresented: $showNewFolderSheet) {
                 NewItemSheet(title: "New Folder", placeholder: "Folder name") { name in
@@ -185,6 +219,7 @@ struct FileListView: View {
             )
             .listRowInsets(EdgeInsets(top: 2, leading: 4, bottom: 2, trailing: 4))
             .draggable(displayItem.fileItem.url)
+            .itemDropDestination(item: displayItem, onDropIntoFolder: onDropIntoFolder, onDrop: onDrop)
             .tag(displayItem.id)
             .contextMenu {
                 contextMenuContent(for: displayItem)
@@ -193,6 +228,7 @@ struct FileListView: View {
         .listStyle(.plain)
         .alternatingRowBackgrounds()
         .environment(\.defaultMinListRowHeight, 20)
+        .paneDropTarget(onDrop: onDrop)
         .onHover { doubleClickProxy.isHovered = $0 }
         .onKeyPress(.return) {
             if renamingURL != nil {
@@ -229,6 +265,7 @@ struct FileListView: View {
                         selection = [displayItem.id]
                     }
                     .draggable(displayItem.fileItem.url)
+                    .itemDropDestination(item: displayItem, onDropIntoFolder: onDropIntoFolder, onDrop: onDrop)
                     .tag(displayItem.id)
                     .contextMenu {
                         contextMenuContent(for: displayItem)
@@ -237,6 +274,7 @@ struct FileListView: View {
             }
             .padding(8)
         }
+        .paneDropTarget(onDrop: onDrop)
         .onHover { doubleClickProxy.isHovered = $0 }
         .onKeyPress(.return) {
             if renamingURL != nil {
@@ -273,6 +311,7 @@ struct FileListView: View {
                         selection = [displayItem.id]
                     }
                     .draggable(displayItem.fileItem.url)
+                    .itemDropDestination(item: displayItem, onDropIntoFolder: onDropIntoFolder, onDrop: onDrop)
                     .tag(displayItem.id)
                     .contextMenu {
                         contextMenuContent(for: displayItem)
@@ -281,6 +320,7 @@ struct FileListView: View {
             }
             .padding(8)
         }
+        .paneDropTarget(onDrop: onDrop)
         .onHover { doubleClickProxy.isHovered = $0 }
         .onKeyPress(.return) {
             if renamingURL != nil {
@@ -497,8 +537,12 @@ private class DoubleClickProxy {
 
     func startMonitoring() {
         guard monitor == nil else { return }
-        monitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
+        monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged]) { [weak self] event in
             guard let self, self.isHovered else { return event }
+            if event.type == .leftMouseDragged {
+                self.cancelPendingRename()
+                return event
+            }
             // Ignore clicks that are reactivating the window (e.g. switching back from another app)
             guard event.window?.isKeyWindow == true else { return event }
             if event.clickCount == 2 {
@@ -521,5 +565,66 @@ private class DoubleClickProxy {
 
     deinit {
         stopMonitoring()
+    }
+}
+
+private struct FolderDropModifier: ViewModifier {
+    let folderURL: URL
+    let onDropIntoFolder: ([URL], URL) -> Void
+
+    @State private var isTargeted = false
+
+    func body(content: Content) -> some View {
+        content
+            .background(isTargeted ? Color.gray.opacity(0.35) : Color.clear)
+            .dropDestination(for: URL.self) { urls, _ in
+                guard !urls.isEmpty else { return false }
+                onDropIntoFolder(urls, folderURL)
+                return true
+            } isTargeted: {
+                isTargeted = $0
+            }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func itemDropDestination(
+        item: DisplayItem,
+        onDropIntoFolder: @escaping ([URL], URL) -> Void,
+        onDrop: @escaping ([URL]) -> Void
+    ) -> some View {
+        if item.fileItem.isDirectory {
+            self.modifier(FolderDropModifier(
+                folderURL: item.fileItem.url,
+                onDropIntoFolder: onDropIntoFolder
+            ))
+        } else {
+            self.dropDestination(for: URL.self) { urls, _ in
+                guard !urls.isEmpty else { return false }
+                onDrop(urls)
+                return true
+            }
+        }
+    }
+
+    func paneDropTarget(onDrop: @escaping ([URL]) -> Void) -> some View {
+        self.onDrop(of: [.fileURL], isTargeted: nil) { providers in
+            Task {
+                var urls: [URL] = []
+                for provider in providers {
+                    let url: URL? = await withCheckedContinuation { cont in
+                        _ = provider.loadObject(ofClass: NSURL.self) { reading, _ in
+                            cont.resume(returning: reading as? URL)
+                        }
+                    }
+                    if let url { urls.append(url) }
+                }
+                if !urls.isEmpty {
+                    await MainActor.run { onDrop(urls) }
+                }
+            }
+            return true
+        }
     }
 }

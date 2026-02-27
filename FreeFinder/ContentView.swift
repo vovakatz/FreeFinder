@@ -12,6 +12,13 @@ struct ContentView: View {
     @State private var rightTopWidget: WidgetType = .info
     @State private var rightBottomWidget: WidgetType = .preview
     @State private var bottomPanelWidget: WidgetType = .terminal
+    @State private var showDualPane: Bool = false
+    @State private var secondFileListVM = FileListViewModel()
+    @State private var activePaneIsSecond: Bool = false
+
+    private var activeVM: FileListViewModel {
+        showDualPane && activePaneIsSecond ? secondFileListVM : fileListVM
+    }
 
     var body: some View {
         HSplitView {
@@ -19,46 +26,77 @@ struct ContentView: View {
                 SidebarView(viewModel: sidebarVM, selection: $sidebarSelection)
                     .frame(minWidth: 100, idealWidth: 100, maxWidth: 300)
             }
-            MainContentView(
-                viewModel: fileListVM,
-                showBottomPanel: showBottomPanel,
-                bottomPanelWidget: $bottomPanelWidget,
-                selectedItems: $fileListVM.selectedItems
-            )
-                .frame(minWidth: 400)
+            HStack(spacing: 0) {
+                MainContentView(
+                    viewModel: fileListVM,
+                    showBottomPanel: showBottomPanel,
+                    bottomPanelWidget: $bottomPanelWidget,
+                    selectedItems: $fileListVM.selectedItems,
+                    isActive: !activePaneIsSecond || !showDualPane,
+                    onActivate: { activePaneIsSecond = false }
+                )
+                if showDualPane {
+                    Divider()
+                    MainContentView(
+                        viewModel: secondFileListVM,
+                        showBottomPanel: showBottomPanel,
+                        bottomPanelWidget: $bottomPanelWidget,
+                        selectedItems: $secondFileListVM.selectedItems,
+                        isActive: activePaneIsSecond,
+                        onActivate: { activePaneIsSecond = true }
+                    )
+                }
+            }
+            .frame(minWidth: 400)
             if showRightPanel {
-                RightPanelView(selectedItems: $fileListVM.selectedItems, currentDirectory: fileListVM.currentURL, topWidget: $rightTopWidget, bottomWidget: $rightBottomWidget)
+                RightPanelView(
+                    selectedItems: Binding(
+                        get: { activeVM.selectedItems },
+                        set: { activeVM.selectedItems = $0 }
+                    ),
+                    currentDirectory: activeVM.currentURL,
+                    topWidget: $rightTopWidget,
+                    bottomWidget: $rightBottomWidget
+                )
             }
         }
         .toolbarBackground(Color(red: 0xE5/255.0, green: 0xE5/255.0, blue: 0xE5/255.0), for: .windowToolbar)
         .toolbarBackgroundVisibility(.visible, for: .windowToolbar)
         .toolbar {
             ToolbarItemGroup(placement: .automatic) {
-                Button { fileListVM.viewMode = .list } label: {
+                Button { activeVM.viewMode = .list } label: {
                     Image(systemName: "list.dash")
-                        .foregroundStyle(fileListVM.viewMode == .list ? Color.accentColor : Color.secondary)
+                        .foregroundStyle(activeVM.viewMode == .list ? Color.accentColor : Color.secondary)
                 }
                 .help("List view")
 
-                Button { fileListVM.viewMode = .icons } label: {
+                Button { activeVM.viewMode = .icons } label: {
                     Image(systemName: "square.grid.3x3")
-                        .foregroundStyle(fileListVM.viewMode == .icons ? Color.accentColor : Color.secondary)
+                        .foregroundStyle(activeVM.viewMode == .icons ? Color.accentColor : Color.secondary)
                 }
                 .help("Icon view")
 
-                Button { fileListVM.viewMode = .thumbnails } label: {
+                Button { activeVM.viewMode = .thumbnails } label: {
                     Image(systemName: "square.grid.2x2")
-                        .foregroundStyle(fileListVM.viewMode == .thumbnails ? Color.accentColor : Color.secondary)
+                        .foregroundStyle(activeVM.viewMode == .thumbnails ? Color.accentColor : Color.secondary)
                 }
                 .help("Thumbnail view")
 
                 Button {
-                    fileListVM.showHiddenFiles.toggle()
-                    Task { await fileListVM.reload() }
+                    activeVM.showHiddenFiles.toggle()
+                    Task { await activeVM.reload() }
                 } label: {
-                    Image(systemName: fileListVM.showHiddenFiles ? "eye" : "eye.slash")
+                    Image(systemName: activeVM.showHiddenFiles ? "eye" : "eye.slash")
                 }
-                .help(fileListVM.showHiddenFiles ? "Hide hidden files" : "Show hidden files")
+                .help(activeVM.showHiddenFiles ? "Hide hidden files" : "Show hidden files")
+
+                Button {
+                    showDualPane.toggle()
+                } label: {
+                    Image(systemName: "rectangle.split.2x1")
+                        .foregroundStyle(showDualPane ? Color.accentColor : Color.secondary)
+                }
+                .help("Dual Pane")
             }
 
             ToolbarItemGroup(placement: .primaryAction) {
@@ -87,16 +125,31 @@ struct ContentView: View {
             searchDebounceTask = Task {
                 try? await Task.sleep(for: .milliseconds(250))
                 guard !Task.isCancelled else { return }
-                fileListVM.searchFilter = newValue
+                activeVM.searchFilter = newValue
             }
         }
         .onChange(of: fileListVM.currentURL) { _, _ in
-            searchText = ""
-            fileListVM.searchFilter = ""
+            if !activePaneIsSecond {
+                searchText = ""
+                fileListVM.searchFilter = ""
+            }
+        }
+        .onChange(of: secondFileListVM.currentURL) { _, _ in
+            if activePaneIsSecond && showDualPane {
+                searchText = ""
+                secondFileListVM.searchFilter = ""
+            }
+        }
+        .onChange(of: showDualPane) { _, isShowing in
+            if isShowing {
+                Task { await secondFileListVM.reload() }
+            } else {
+                activePaneIsSecond = false
+            }
         }
         .onChange(of: sidebarSelection) { _, newURL in
             if let url = newURL {
-                fileListVM.navigate(to: url)
+                activeVM.navigate(to: url)
             }
         }
         .task {

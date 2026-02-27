@@ -38,12 +38,21 @@ final class FileListViewModel {
     var showOverwriteConfirmation = false
     var conflictingNames: [String] = []
 
+    // Move (drop) state
+    var showMoveConfirmation = false
+    var pendingMoveURLs: [URL] = []
+    var pendingMoveDestination: URL?
+    var pendingMoveNames: [String] { pendingMoveURLs.map { $0.lastPathComponent } }
+    var pendingMoveDestinationName: String { (pendingMoveDestination ?? currentURL).lastPathComponent }
+
     // Network auth state
     var showAuthSheet = false
     var pendingMountURL: URL?
     var pendingAuthHostname: String?  // non-nil when auth is for share enumeration
     var showConnectToServer = false
     private var storedCredentials: [String: NetworkCredentials] = [:]  // hostname -> creds
+    private var directoryMonitors: [URL: DispatchSourceFileSystemObject] = [:]
+    private var refreshDebounceTask: Task<Void, Never>?
 
     var volumeStatusText: String {
         if navigationState.isNetworkURL { return "" }
@@ -125,6 +134,10 @@ final class FileListViewModel {
         self.navigationState = NavigationState(url: startURL)
     }
 
+    deinit {
+        for source in directoryMonitors.values { source.cancel() }
+    }
+
     func navigate(to url: URL) {
         expandedFolders.removeAll()
         childItems.removeAll()
@@ -137,10 +150,9 @@ final class FileListViewModel {
             expandedFolders.remove(item.url)
         } else {
             expandedFolders.insert(item.url)
-            if childItems[item.url] == nil {
-                Task { await loadChildren(for: item.url) }
-            }
+            Task { await loadChildren(for: item.url) }
         }
+        updateExpandedMonitors()
     }
 
     private func loadChildren(for url: URL) async {
@@ -228,6 +240,7 @@ final class FileListViewModel {
     }
 
     func reload() async {
+        refreshDebounceTask?.cancel()
         expandedFolders.removeAll()
         childItems.removeAll()
         isLoading = true
@@ -241,6 +254,7 @@ final class FileListViewModel {
         }
 
         isLoading = false
+        startMonitoring()
     }
 
     private func reloadNetwork(credentials: NetworkCredentials? = nil) async {
@@ -291,6 +305,85 @@ final class FileListViewModel {
                 errorMessage = error.localizedDescription
             }
             items = []
+        }
+    }
+
+    // MARK: - Directory Monitoring
+
+    private func startMonitoring() {
+        stopAllMonitors()
+        guard currentURL.isFileURL else { return }
+        addMonitor(for: currentURL)
+    }
+
+    func updateExpandedMonitors() {
+        let desired = expandedFolders.filter { $0.isFileURL }
+        let monitored = Set(directoryMonitors.keys).subtracting([currentURL])
+
+        for url in monitored.subtracting(desired) {
+            directoryMonitors[url]?.cancel()
+            directoryMonitors[url] = nil
+        }
+        for url in desired.subtracting(monitored) {
+            addMonitor(for: url)
+        }
+    }
+
+    private func addMonitor(for url: URL) {
+        guard directoryMonitors[url] == nil else { return }
+        let fd = Darwin.open(url.path, O_EVTONLY)
+        guard fd >= 0 else { return }
+
+        let source = DispatchSource.makeFileSystemObjectSource(
+            fileDescriptor: fd,
+            eventMask: .write,
+            queue: .main
+        )
+
+        source.setEventHandler { [weak self] in
+            guard let self else { return }
+            self.refreshDebounceTask?.cancel()
+            self.refreshDebounceTask = Task { [weak self] in
+                try? await Task.sleep(for: .milliseconds(200))
+                guard !Task.isCancelled, let self else { return }
+                await self.refreshItems()
+            }
+        }
+
+        source.setCancelHandler {
+            close(fd)
+        }
+
+        source.resume()
+        directoryMonitors[url] = source
+    }
+
+    private func stopAllMonitors() {
+        for source in directoryMonitors.values { source.cancel() }
+        directoryMonitors.removeAll()
+    }
+
+    private func refreshItems() async {
+        guard currentURL.isFileURL else { return }
+        do {
+            let loaded = try await fileSystemService.loadContents(
+                of: currentURL,
+                showHiddenFiles: showHiddenFiles,
+                sortedBy: sortCriteria
+            )
+            items = loaded
+        } catch {
+            // Silently ignore refresh errors
+        }
+        for url in expandedFolders where url.isFileURL {
+            do {
+                let children = try await fileSystemService.loadContents(
+                    of: url, showHiddenFiles: showHiddenFiles, sortedBy: sortCriteria
+                )
+                childItems[url] = children
+            } catch {
+                // Silently ignore
+            }
         }
     }
 
@@ -469,5 +562,34 @@ final class FileListViewModel {
         selectedItems.subtract(itemsToDelete)
         itemsToDelete.removeAll()
         Task { await reload() }
+    }
+
+    // MARK: - Drop/Move operations
+
+    func requestMoveItems(_ urls: [URL], destination: URL? = nil) {
+        let dest = destination ?? currentURL
+        let toMove = urls.filter {
+            $0.deletingLastPathComponent().standardizedFileURL != dest.standardizedFileURL
+            && $0.standardizedFileURL != dest.standardizedFileURL
+        }
+        guard !toMove.isEmpty else { return }
+        pendingMoveURLs = toMove
+        pendingMoveDestination = dest
+        showMoveConfirmation = true
+    }
+
+    func confirmMoveItems() {
+        let dest = pendingMoveDestination ?? currentURL
+        let fm = FileManager.default
+        for url in pendingMoveURLs {
+            let destURL = dest.appendingPathComponent(url.lastPathComponent)
+            do {
+                try fm.moveItem(at: url, to: destURL)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+        pendingMoveURLs = []
+        pendingMoveDestination = nil
     }
 }
