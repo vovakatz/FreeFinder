@@ -7,6 +7,8 @@ struct ToolbarView: View {
     var canGoForward: Bool = false
     var onGoBack: () -> Void = {}
     var onGoForward: () -> Void = {}
+    var onNewFolder: () -> Void = {}
+    var onNewFile: () -> Void = {}
 
     var body: some View {
         HStack(spacing: 6) {
@@ -43,6 +45,19 @@ struct ToolbarView: View {
             }
 
             Spacer()
+            
+            Button(action: onNewFile) {
+                Image(systemName: "doc.badge.plus")
+            }
+            .buttonStyle(.borderless)
+            .help("New File")
+            .padding(.horizontal, 6)
+
+            Button(action: onNewFolder) {
+                Image(systemName: "folder.badge.plus")
+            }
+            .buttonStyle(.borderless)
+            .help("New Folder")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 3.5)

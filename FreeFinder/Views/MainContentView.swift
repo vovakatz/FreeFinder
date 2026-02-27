@@ -8,6 +8,8 @@ struct MainContentView: View {
 
     @State private var bottomPanelHeight: CGFloat?
     @State private var totalHeight: CGFloat = 0
+    @State private var showNewFolderSheet = false
+    @State private var showNewFileSheet = false
 
     private var effectiveBottomHeight: CGFloat {
         bottomPanelHeight ?? (totalHeight * 0.3)
@@ -21,7 +23,9 @@ struct MainContentView: View {
                 canGoBack: viewModel.canGoBack,
                 canGoForward: viewModel.canGoForward,
                 onGoBack: { viewModel.goBack() },
-                onGoForward: { viewModel.goForward() }
+                onGoForward: { viewModel.goForward() },
+                onNewFolder: { showNewFolderSheet = true },
+                onNewFile: { showNewFileSheet = true }
             )
             Divider()
 
@@ -54,7 +58,9 @@ struct MainContentView: View {
                         onCreateFile: { viewModel.createFile(name: $0) },
                         onRename: { viewModel.renameItem(at: $0, to: $1) },
                         showDeleteConfirmation: $viewModel.showDeleteConfirmation,
-                        selection: $viewModel.selectedItems
+                        selection: $viewModel.selectedItems,
+                        showNewFolderSheet: $showNewFolderSheet,
+                        showNewFileSheet: $showNewFileSheet
                     )
 
                     if showBottomPanel {

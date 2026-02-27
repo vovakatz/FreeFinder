@@ -34,8 +34,8 @@ struct FileListView: View {
     @State private var sizeWidth: CGFloat = 80
     @State private var kindWidth: CGFloat = 120
     @State private var doubleClickProxy = DoubleClickProxy()
-    @State private var showNewFolderSheet = false
-    @State private var showNewFileSheet = false
+    @Binding var showNewFolderSheet: Bool
+    @Binding var showNewFileSheet: Bool
     @State private var newItemName = ""
     @State private var renamingURL: URL? = nil
     @State private var renameText = ""
