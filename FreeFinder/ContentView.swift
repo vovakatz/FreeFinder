@@ -7,6 +7,8 @@ struct ContentView: View {
     @State private var showLeftSidebar: Bool = true
     @State private var showRightPanel: Bool = true
     @State private var showBottomPanel: Bool = false
+    @State private var searchText: String = ""
+    @State private var searchDebounceTask: Task<Void, Never>?
     @State private var rightTopWidget: WidgetType = .info
     @State private var rightBottomWidget: WidgetType = .preview
     @State private var bottomPanelWidget: WidgetType = .terminal
@@ -74,7 +76,23 @@ struct ContentView: View {
                     Image(systemName: "sidebar.right")
                 }
                 .help(showRightPanel ? "Hide right panel" : "Show right panel")
+
+                SearchBarView(text: $searchText)
+                    .frame(width: 280)
+                    .padding(.horizontal, 8)
             }
+        }
+        .onChange(of: searchText) { _, newValue in
+            searchDebounceTask?.cancel()
+            searchDebounceTask = Task {
+                try? await Task.sleep(for: .milliseconds(250))
+                guard !Task.isCancelled else { return }
+                fileListVM.searchFilter = newValue
+            }
+        }
+        .onChange(of: fileListVM.currentURL) { _, _ in
+            searchText = ""
+            fileListVM.searchFilter = ""
         }
         .onChange(of: sidebarSelection) { _, newURL in
             if let url = newURL {

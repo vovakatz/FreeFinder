@@ -29,6 +29,7 @@ final class FileListViewModel {
     var childItems: [URL: [FileItem]] = [:]
     var selectedItems: Set<URL> = []
     var viewMode: ViewMode = .list
+    var searchFilter: String = ""
 
     // Clipboard & delete state
     var clipboard: (urls: Set<URL>, isCut: Bool)?
@@ -62,18 +63,43 @@ final class FileListViewModel {
     }
 
     var displayItems: [DisplayItem] {
+        let filtered = searchFilter.isEmpty ? items : items.filter { matchesSearch($0.name) }
         var result: [DisplayItem] = []
         func addItems(_ items: [FileItem], depth: Int) {
             for item in items {
                 result.append(DisplayItem(fileItem: item, depth: depth))
                 if item.isDirectory, expandedFolders.contains(item.url),
                    let children = childItems[item.url] {
-                    addItems(children, depth: depth + 1)
+                    let filteredChildren = searchFilter.isEmpty ? children : children.filter { matchesSearch($0.name) }
+                    addItems(filteredChildren, depth: depth + 1)
                 }
             }
         }
-        addItems(items, depth: 0)
+        addItems(filtered, depth: 0)
         return result
+    }
+
+    private func matchesSearch(_ name: String) -> Bool {
+        let pattern = searchFilter.trimmingCharacters(in: .whitespaces)
+        guard !pattern.isEmpty else { return true }
+
+        // Convert glob pattern to regex:
+        // - If no wildcards present, treat as *pattern* (substring match)
+        // - Otherwise, anchor the glob pattern
+        let hasWildcard = pattern.contains("*") || pattern.contains("?")
+        let glob = hasWildcard ? pattern : "*\(pattern)*"
+
+        // Convert glob to regex: escape regex-special chars, then replace glob wildcards
+        var regex = NSRegularExpression.escapedPattern(for: glob)
+        regex = regex.replacingOccurrences(of: "\\*", with: ".*")
+        regex = regex.replacingOccurrences(of: "\\?", with: ".")
+        regex = "^" + regex + "$"
+
+        guard let re = try? NSRegularExpression(pattern: regex, options: .caseInsensitive) else {
+            // Fallback: simple case-insensitive contains
+            return name.localizedCaseInsensitiveContains(pattern)
+        }
+        return re.firstMatch(in: name, range: NSRange(name.startIndex..., in: name)) != nil
     }
 
     var currentURL: URL { navigationState.currentURL }
