@@ -45,7 +45,7 @@ struct ToolbarView: View {
             Spacer()
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.vertical, 3.5)
     }
 }
 

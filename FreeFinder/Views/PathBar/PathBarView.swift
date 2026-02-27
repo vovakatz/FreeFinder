@@ -24,9 +24,9 @@ struct PathBarView: View {
                 }
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 4)
+            .padding(.vertical, 2)
         }
-        .frame(height: 24)
+        .frame(height: 20)
         .background(Color(nsColor: .controlBackgroundColor))
     }
 }

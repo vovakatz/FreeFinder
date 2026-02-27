@@ -1,5 +1,27 @@
 import SwiftUI
 
+private struct EjectButton: View {
+    let action: () -> Void
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "eject.fill")
+                .font(.system(size: 10))
+                .foregroundStyle(isHovering ? .primary : .secondary)
+                .frame(width: 18, height: 18)
+                .background(
+                    Circle()
+                        .fill(.white.opacity(isHovering ? 0.15 : 0))
+                )
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+            isHovering = hovering
+        }
+    }
+}
+
 struct SidebarView: View {
     let viewModel: SidebarViewModel
     @Binding var selection: URL?
@@ -34,19 +56,23 @@ struct SidebarView: View {
                 }
 
                 ForEach(viewModel.networkVolumes) { item in
-                    Label(item.name, systemImage: item.icon)
-                        .tag(item.url)
-                        .contextMenu {
-                            Button("Eject") {
-                                ejectVolume(item.url)
-                            }
-                        }
+                    ejectableVolumeRow(item)
                 }
             }
         }
         .listStyle(.sidebar)
         .scrollContentBackground(.hidden)
         .background(Color.black.opacity(0.15))
+    }
+
+    private func ejectableVolumeRow(_ item: SidebarItem) -> some View {
+        HStack {
+            Label(item.name, systemImage: item.icon)
+            Spacer()
+            EjectButton { ejectVolume(item.url) }
+                .help("Eject \(item.name)")
+        }
+        .tag(item.url)
     }
 
     private func ejectVolume(_ url: URL) {
