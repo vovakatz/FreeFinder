@@ -19,6 +19,8 @@ struct WidgetSlotView: View {
             GitWidgetView(currentDirectory: currentDirectory, widgetType: $widgetType)
         case .clipboard:
             ClipboardWidgetView(currentDirectory: currentDirectory, widgetType: $widgetType)
+        case .systemMonitor:
+            SystemMonitorWidgetView(currentDirectory: currentDirectory, widgetType: $widgetType)
         }
     }
 }
