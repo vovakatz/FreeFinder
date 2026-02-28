@@ -303,7 +303,7 @@ final class FileListViewModel {
             if isTrash, (error as NSError).domain == NSCocoaErrorDomain,
                (error as NSError).code == NSFileReadNoPermissionError {
                 needsFullDiskAccess = true
-                errorMessage = "FreeFinder needs Full Disk Access to view the Trash."
+                errorMessage = "BetterFinder needs Full Disk Access to view the Trash."
             } else {
                 errorMessage = error.localizedDescription
             }

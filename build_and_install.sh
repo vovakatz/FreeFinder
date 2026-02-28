@@ -1,9 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-APP_NAME="FreeFinder"
-SCHEME="FreeFinder"
-PROJECT="FreeFinder.xcodeproj"
+APP_NAME="BetterFinder"
+SCHEME="BetterFinder"
+PROJECT="BetterFinder.xcodeproj"
 INSTALL_DIR="/Applications"
 BUILD_DIR=$(mktemp -d)
 

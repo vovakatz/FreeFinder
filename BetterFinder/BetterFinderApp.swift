@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 @main
-struct FreeFinderApp: App {
+struct BetterFinderApp: App {
     @FocusedValue(\.activeFileListVM) var activeVM
 
     var body: some Scene {

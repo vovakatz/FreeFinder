@@ -11,13 +11,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		2DD3CD8E2F4C02C80045DDA0 /* FreeFinder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FreeFinder.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2DD3CD8E2F4C02C80045DDA0 /* BetterFinder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BetterFinder.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		2DD3CD902F4C02C80045DDA0 /* FreeFinder */ = {
+		2DD3CD902F4C02C80045DDA0 /* BetterFinder */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = FreeFinder;
+			path = BetterFinder;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -37,7 +37,7 @@
 		2DD3CD852F4C02C80045DDA0 = {
 			isa = PBXGroup;
 			children = (
-				2DD3CD902F4C02C80045DDA0 /* FreeFinder */,
+				2DD3CD902F4C02C80045DDA0 /* BetterFinder */,
 				2DD3CD8F2F4C02C80045DDA0 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -45,7 +45,7 @@
 		2DD3CD8F2F4C02C80045DDA0 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				2DD3CD8E2F4C02C80045DDA0 /* FreeFinder.app */,
+				2DD3CD8E2F4C02C80045DDA0 /* BetterFinder.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -53,9 +53,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		2DD3CD8D2F4C02C80045DDA0 /* FreeFinder */ = {
+		2DD3CD8D2F4C02C80045DDA0 /* BetterFinder */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 2DD3CD992F4C02C90045DDA0 /* Build configuration list for PBXNativeTarget "FreeFinder" */;
+			buildConfigurationList = 2DD3CD992F4C02C90045DDA0 /* Build configuration list for PBXNativeTarget "BetterFinder" */;
 			buildPhases = (
 				2DD3CD8A2F4C02C80045DDA0 /* Sources */,
 				2DD3CD8B2F4C02C80045DDA0 /* Frameworks */,
@@ -66,14 +66,14 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				2DD3CD902F4C02C80045DDA0 /* FreeFinder */,
+				2DD3CD902F4C02C80045DDA0 /* BetterFinder */,
 			);
-			name = FreeFinder;
+			name = BetterFinder;
 			packageProductDependencies = (
 				A1B2C3D42F5A00010000002 /* SwiftTerm */,
 			);
-			productName = FreeFinder;
-			productReference = 2DD3CD8E2F4C02C80045DDA0 /* FreeFinder.app */;
+			productName = BetterFinder;
+			productReference = 2DD3CD8E2F4C02C80045DDA0 /* BetterFinder.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -91,7 +91,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 2DD3CD892F4C02C80045DDA0 /* Build configuration list for PBXProject "FreeFinder" */;
+			buildConfigurationList = 2DD3CD892F4C02C80045DDA0 /* Build configuration list for PBXProject "BetterFinder" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -108,7 +108,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				2DD3CD8D2F4C02C80045DDA0 /* FreeFinder */,
+				2DD3CD8D2F4C02C80045DDA0 /* BetterFinder */,
 			);
 		};
 /* End PBXProject section */
@@ -269,7 +269,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.KatzStudio.FreeFinder;
+				PRODUCT_BUNDLE_IDENTIFIER = com.KatzStudio.BetterFinder;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -298,7 +298,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.KatzStudio.FreeFinder;
+				PRODUCT_BUNDLE_IDENTIFIER = com.KatzStudio.BetterFinder;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -313,7 +313,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		2DD3CD892F4C02C80045DDA0 /* Build configuration list for PBXProject "FreeFinder" */ = {
+		2DD3CD892F4C02C80045DDA0 /* Build configuration list for PBXProject "BetterFinder" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				2DD3CD972F4C02C90045DDA0 /* Debug */,
@@ -322,7 +322,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		2DD3CD992F4C02C90045DDA0 /* Build configuration list for PBXNativeTarget "FreeFinder" */ = {
+		2DD3CD992F4C02C90045DDA0 /* Build configuration list for PBXNativeTarget "BetterFinder" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				2DD3CD9A2F4C02C90045DDA0 /* Debug */,

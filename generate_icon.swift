@@ -2,7 +2,7 @@
 import AppKit
 import CoreGraphics
 
-let outputDir = "FreeFinder/Assets.xcassets/AppIcon.appiconset"
+let outputDir = "BetterFinder/Assets.xcassets/AppIcon.appiconset"
 
 struct IconSize {
     let name: String
