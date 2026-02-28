@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 @main
 struct FreeFinderApp: App {
@@ -22,6 +23,17 @@ struct FreeFinderApp: App {
                     vm.moveToTrash(vm.selectedItems)
                 }
                 .keyboardShortcut(.delete, modifiers: .command)
+            }
+            CommandGroup(replacing: .textEditing) {
+                Button("Select All") {
+                    if let firstResponder = NSApp.keyWindow?.firstResponder,
+                       firstResponder is NSTextView {
+                        NSApp.sendAction(#selector(NSResponder.selectAll(_:)), to: nil, from: nil)
+                    } else if let vm = activeVM {
+                        vm.selectedItems = Set(vm.displayItems.map(\.id))
+                    }
+                }
+                .keyboardShortcut("a", modifiers: .command)
             }
         }
     }
