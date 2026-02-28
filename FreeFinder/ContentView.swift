@@ -93,32 +93,6 @@ struct ContentView: View {
         .toolbarBackgroundVisibility(.visible, for: .windowToolbar)
         .toolbar {
             ToolbarItemGroup(placement: .automatic) {
-                Button { activeVM.viewMode = .list } label: {
-                    Image(systemName: "list.dash")
-                        .foregroundStyle(activeVM.viewMode == .list ? Color.accentColor : Color.secondary)
-                }
-                .help("List view")
-
-                Button { activeVM.viewMode = .icons } label: {
-                    Image(systemName: "square.grid.3x3")
-                        .foregroundStyle(activeVM.viewMode == .icons ? Color.accentColor : Color.secondary)
-                }
-                .help("Icon view")
-
-                Button { activeVM.viewMode = .thumbnails } label: {
-                    Image(systemName: "square.grid.2x2")
-                        .foregroundStyle(activeVM.viewMode == .thumbnails ? Color.accentColor : Color.secondary)
-                }
-                .help("Thumbnail view")
-
-                Button {
-                    activeVM.showHiddenFiles.toggle()
-                    Task { await activeVM.reload() }
-                } label: {
-                    Image(systemName: activeVM.showHiddenFiles ? "eye" : "eye.slash")
-                }
-                .help(activeVM.showHiddenFiles ? "Hide hidden files" : "Show hidden files")
-
                 Button {
                     showDualPane.toggle()
                 } label: {
@@ -143,6 +117,8 @@ struct ContentView: View {
                     Image(systemName: "sidebar.right")
                 }
                 .help(showRightPanel ? "Hide right panel" : "Show right panel")
+                
+                Spacer()
 
                 SearchBarView(text: $searchText)
                     .frame(width: 280)

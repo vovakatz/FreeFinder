@@ -9,6 +9,9 @@ struct ToolbarView: View {
     var onGoForward: () -> Void = {}
     var onNewFolder: () -> Void = {}
     var onNewFile: () -> Void = {}
+    @Binding var viewMode: ViewMode
+    @Binding var showHiddenFiles: Bool
+    var onToggleHiddenFiles: () -> Void = {}
 
     var body: some View {
         HStack(spacing: 6) {
@@ -45,13 +48,34 @@ struct ToolbarView: View {
             }
 
             Spacer()
-            
+
+            Button { viewMode = .list } label: {
+                Image(systemName: "list.dash")
+                    .foregroundStyle(viewMode == .list ? Color.accentColor : Color.secondary)
+            }
+            .buttonStyle(.borderless)
+            .help("List view")
+
+            Button { viewMode = .thumbnails } label: {
+                Image(systemName: "square.grid.2x2")
+                    .foregroundStyle(viewMode == .thumbnails ? Color.accentColor : Color.secondary)
+            }
+            .buttonStyle(.borderless)
+            .help("Thumbnail view")
+
+            Button(action: onToggleHiddenFiles) {
+                Image(systemName: showHiddenFiles ? "eye" : "eye.slash")
+                    .foregroundStyle(showHiddenFiles ? Color.accentColor : Color.secondary)
+            }
+            .buttonStyle(.borderless)
+            .help(showHiddenFiles ? "Hide hidden files" : "Show hidden files")
+
             Button(action: onNewFile) {
                 Image(systemName: "doc.badge.plus")
             }
             .buttonStyle(.borderless)
             .help("New File")
-            .padding(.horizontal, 6)
+            .padding(.leading, 6)
 
             Button(action: onNewFolder) {
                 Image(systemName: "folder.badge.plus")

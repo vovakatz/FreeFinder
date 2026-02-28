@@ -18,7 +18,13 @@ struct MainContentView: View {
                 onGoBack: { viewModel.goBack() },
                 onGoForward: { viewModel.goForward() },
                 onNewFolder: { showNewFolderSheet = true },
-                onNewFile: { showNewFileSheet = true }
+                onNewFile: { showNewFileSheet = true },
+                viewMode: $viewModel.viewMode,
+                showHiddenFiles: $viewModel.showHiddenFiles,
+                onToggleHiddenFiles: {
+                    viewModel.showHiddenFiles.toggle()
+                    Task { await viewModel.reload() }
+                }
             )
             Divider()
 
