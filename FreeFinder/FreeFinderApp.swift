@@ -2,6 +2,8 @@ import SwiftUI
 
 @main
 struct FreeFinderApp: App {
+    @FocusedValue(\.activeFileListVM) var activeVM
+
     var body: some Scene {
         WindowGroup("") {
             ContentView()
@@ -13,6 +15,13 @@ struct FreeFinderApp: App {
                     NotificationCenter.default.post(name: .connectToServer, object: nil)
                 }
                 .keyboardShortcut("k", modifiers: .command)
+            }
+            CommandGroup(after: .pasteboard) {
+                Button("Move to Trash") {
+                    guard let vm = activeVM, !vm.selectedItems.isEmpty else { return }
+                    vm.moveToTrash(vm.selectedItems)
+                }
+                .keyboardShortcut(.delete, modifiers: .command)
             }
         }
     }

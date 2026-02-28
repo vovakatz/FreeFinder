@@ -1,5 +1,16 @@
 import SwiftUI
 
+struct FocusedFileListVMKey: FocusedValueKey {
+    typealias Value = FileListViewModel
+}
+
+extension FocusedValues {
+    var activeFileListVM: FileListViewModel? {
+        get { self[FocusedFileListVMKey.self] }
+        set { self[FocusedFileListVMKey.self] = newValue }
+    }
+}
+
 struct ContentView: View {
     @State private var fileListVM = FileListViewModel()
     @State private var sidebarVM = SidebarViewModel()
@@ -159,6 +170,7 @@ struct ContentView: View {
             }
         }
         .environment(clipboardService)
+        .focusedSceneValue(\.activeFileListVM, activeVM)
         .task {
             fileListVM.clipboardService = clipboardService
             secondFileListVM.clipboardService = clipboardService

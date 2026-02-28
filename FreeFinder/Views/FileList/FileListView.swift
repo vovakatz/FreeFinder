@@ -235,6 +235,19 @@ struct FileListView: View {
             openSelected()
             return .handled
         }
+        .onCopyCommand {
+            guard !selection.isEmpty else { return [] }
+            onCopy(selection)
+            return selection.map { NSItemProvider(object: $0 as NSURL) }
+        }
+        .onCutCommand {
+            guard !selection.isEmpty else { return [] }
+            onCut(selection)
+            return selection.map { NSItemProvider(object: $0 as NSURL) }
+        }
+        .onPasteCommand(of: [.fileURL]) { _ in
+            onPaste()
+        }
         .contextMenu { backgroundContextMenu }
         .onChange(of: selection) { _, newValue in
             doubleClickProxy.cancelPendingRename()
@@ -280,6 +293,19 @@ struct FileListView: View {
             }
             openSelected()
             return .handled
+        }
+        .onCopyCommand {
+            guard !selection.isEmpty else { return [] }
+            onCopy(selection)
+            return selection.map { NSItemProvider(object: $0 as NSURL) }
+        }
+        .onCutCommand {
+            guard !selection.isEmpty else { return [] }
+            onCut(selection)
+            return selection.map { NSItemProvider(object: $0 as NSURL) }
+        }
+        .onPasteCommand(of: [.fileURL]) { _ in
+            onPaste()
         }
         .contextMenu { backgroundContextMenu }
         .onChange(of: selection) { _, newValue in
