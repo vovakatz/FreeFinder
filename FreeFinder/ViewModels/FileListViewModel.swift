@@ -31,7 +31,11 @@ final class FileListViewModel {
     var searchFilter: String = ""
 
     // Clipboard & delete state
-    var clipboard: (urls: Set<URL>, isCut: Bool)?
+    var clipboardService: ClipboardService?
+    var clipboard: (urls: Set<URL>, isCut: Bool)? {
+        guard let entry = clipboardService?.current else { return nil }
+        return (urls: entry.urls, isCut: entry.isCut)
+    }
     var showDeleteConfirmation = false
     var itemsToDelete: Set<URL> = []
     var showOverwriteConfirmation = false
@@ -471,17 +475,11 @@ final class FileListViewModel {
     // MARK: - Clipboard operations
 
     func copyItems(_ urls: Set<URL>) {
-        clipboard = (urls: urls, isCut: false)
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.writeObjects(urls.map { $0 as NSURL })
+        clipboardService?.setCopy(urls)
     }
 
     func cutItems(_ urls: Set<URL>) {
-        clipboard = (urls: urls, isCut: true)
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.writeObjects(urls.map { $0 as NSURL })
+        clipboardService?.setCut(urls)
     }
 
     func pasteItems() {
@@ -526,7 +524,7 @@ final class FileListViewModel {
             }
         }
         if clipboard.isCut {
-            self.clipboard = nil
+            clipboardService?.clearCurrent()
         }
         Task { await reload() }
     }

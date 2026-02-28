@@ -17,6 +17,8 @@ struct WidgetSlotView: View {
             ImagesWidgetView(currentDirectory: currentDirectory, selectedURLs: $selectedURLs, widgetType: $widgetType)
         case .git:
             GitWidgetView(currentDirectory: currentDirectory, widgetType: $widgetType)
+        case .clipboard:
+            ClipboardWidgetView(currentDirectory: currentDirectory, widgetType: $widgetType)
         }
     }
 }

@@ -4,6 +4,7 @@ enum WidgetType: String, CaseIterable, Identifiable {
     case terminal = "Terminal"
     case images = "Images"
     case git = "Git"
+    case clipboard = "Clipboard"
 
     var id: String { rawValue }
 }

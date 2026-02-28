@@ -12,6 +12,7 @@ struct ContentView: View {
     @State private var rightTopWidget: WidgetType = .info
     @State private var rightBottomWidget: WidgetType = .preview
     @State private var bottomPanelWidget: WidgetType = .terminal
+    @State private var clipboardService = ClipboardService()
     @State private var showDualPane: Bool = false
     @State private var secondFileListVM = FileListViewModel()
     @State private var activePaneIsSecond: Bool = false
@@ -157,7 +158,10 @@ struct ContentView: View {
                 activeVM.navigate(to: url)
             }
         }
+        .environment(clipboardService)
         .task {
+            fileListVM.clipboardService = clipboardService
+            secondFileListVM.clipboardService = clipboardService
             await fileListVM.reload()
         }
         .sheet(isPresented: $fileListVM.showConnectToServer) {
