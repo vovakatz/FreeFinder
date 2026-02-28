@@ -15,6 +15,12 @@ struct ContentView: View {
     @State private var showDualPane: Bool = false
     @State private var secondFileListVM = FileListViewModel()
     @State private var activePaneIsSecond: Bool = false
+    @State private var bottomPanelHeight: CGFloat?
+    @State private var centerPanelHeight: CGFloat = 0
+
+    private var effectiveBottomHeight: CGFloat {
+        bottomPanelHeight ?? (centerPanelHeight * 0.3)
+    }
 
     private var activeVM: FileListViewModel {
         showDualPane && activePaneIsSecond ? secondFileListVM : fileListVM
@@ -26,26 +32,49 @@ struct ContentView: View {
                 SidebarView(viewModel: sidebarVM, selection: $sidebarSelection)
                     .frame(minWidth: 100, idealWidth: 100, maxWidth: 300)
             }
-            HStack(spacing: 0) {
-                MainContentView(
-                    viewModel: fileListVM,
-                    showBottomPanel: showBottomPanel,
-                    bottomPanelWidget: $bottomPanelWidget,
-                    selectedItems: $fileListVM.selectedItems,
-                    isActive: !activePaneIsSecond || !showDualPane,
-                    onActivate: { activePaneIsSecond = false }
-                )
-                if showDualPane {
-                    Divider()
-                    MainContentView(
-                        viewModel: secondFileListVM,
-                        showBottomPanel: showBottomPanel,
-                        bottomPanelWidget: $bottomPanelWidget,
-                        selectedItems: $secondFileListVM.selectedItems,
-                        isActive: activePaneIsSecond,
-                        onActivate: { activePaneIsSecond = true }
-                    )
+            VStack(spacing: 0) {
+                GeometryReader { geo in
+                    let _ = updateCenterPanelHeight(geo.size.height)
+                    VStack(spacing: 0) {
+                        HStack(spacing: 0) {
+                            MainContentView(
+                                viewModel: fileListVM,
+                                isActive: !activePaneIsSecond || !showDualPane,
+                                onActivate: { activePaneIsSecond = false }
+                            )
+                            if showDualPane {
+                                Divider()
+                                MainContentView(
+                                    viewModel: secondFileListVM,
+                                    isActive: activePaneIsSecond,
+                                    onActivate: { activePaneIsSecond = true }
+                                )
+                            }
+                        }
+
+                        if showBottomPanel {
+                            SplitDragHandle(height: Binding(
+                                get: { effectiveBottomHeight },
+                                set: { bottomPanelHeight = $0 }
+                            ), totalHeight: geo.size.height)
+
+                            BottomPanelView(
+                                currentDirectory: activeVM.currentURL,
+                                selectedItems: Binding(
+                                    get: { activeVM.selectedItems },
+                                    set: { activeVM.selectedItems = $0 }
+                                ),
+                                widgetType: $bottomPanelWidget
+                            )
+                            .frame(height: effectiveBottomHeight)
+                        }
+                    }
                 }
+                Divider()
+                StatusBarView(
+                    selectionCount: activeVM.selectedItems.count,
+                    volumeStatusText: activeVM.volumeStatusText
+                )
             }
             .frame(minWidth: 400)
             if showRightPanel {
@@ -170,6 +199,12 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .connectToServer)) { _ in
             fileListVM.showConnectToServer = true
+        }
+    }
+
+    private func updateCenterPanelHeight(_ h: CGFloat) {
+        if centerPanelHeight != h {
+            DispatchQueue.main.async { centerPanelHeight = h }
         }
     }
 }
