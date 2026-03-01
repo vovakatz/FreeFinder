@@ -11,24 +11,65 @@ extension FocusedValues {
     }
 }
 
+struct VerticalDragHandle: View {
+    @Binding var width: Double
+    let minWidth: CGFloat
+    let maxWidth: CGFloat
+    let leadingEdge: Bool
+
+    @State private var dragStartWidth: Double?
+
+    var body: some View {
+        Rectangle()
+            .fill(Color(nsColor: .separatorColor))
+            .frame(width: 5)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 1, coordinateSpace: .global)
+                    .onChanged { value in
+                        if dragStartWidth == nil {
+                            dragStartWidth = width
+                        }
+                        let delta = leadingEdge ? value.translation.width : -value.translation.width
+                        let newWidth = (dragStartWidth ?? width) + delta
+                        width = max(Double(minWidth), min(newWidth, Double(maxWidth)))
+                    }
+                    .onEnded { _ in
+                        dragStartWidth = nil
+                    }
+            )
+            .onHover { hovering in
+                if hovering {
+                    NSCursor.resizeLeftRight.push()
+                } else {
+                    NSCursor.pop()
+                }
+            }
+    }
+}
+
 struct ContentView: View {
     @State private var fileListVM = FileListViewModel()
     @State private var sidebarVM = SidebarViewModel()
     @State private var sidebarSelection: URL?
-    @State private var showLeftSidebar: Bool = true
-    @State private var showRightPanel: Bool = true
-    @State private var showBottomPanel: Bool = false
+    @AppStorage("showLeftSidebar") private var showLeftSidebar: Bool = true
+    @AppStorage("showRightPanel") private var showRightPanel: Bool = true
+    @AppStorage("showBottomPanel") private var showBottomPanel: Bool = false
     @State private var searchText: String = ""
     @State private var searchDebounceTask: Task<Void, Never>?
-    @State private var rightTopWidget: WidgetType = .info
-    @State private var rightBottomWidget: WidgetType = .preview
-    @State private var bottomPanelWidget: WidgetType = .terminal
+    @AppStorage("rightTopWidgetRaw") private var rightTopWidgetRaw: String = "Info"
+    @AppStorage("rightBottomWidgetRaw") private var rightBottomWidgetRaw: String = "Preview"
+    @AppStorage("bottomPanelWidgetRaw") private var bottomPanelWidgetRaw: String = "Terminal"
     @State private var clipboardService = ClipboardService()
     @State private var showDualPane: Bool = false
     @State private var secondFileListVM = FileListViewModel()
     @State private var activePaneIsSecond: Bool = false
     @State private var bottomPanelHeight: CGFloat?
     @State private var centerPanelHeight: CGFloat = 0
+    @AppStorage("leftSidebarWidth") private var leftSidebarWidth: Double = 180
+    @AppStorage("rightPanelWidth") private var rightPanelWidth: Double = 220
+    @AppStorage("rightPanelSplitFraction") private var rightPanelSplitFraction: Double = 0.5
+    @State private var totalWidth: CGFloat = NSScreen.main?.frame.width ?? 1200
 
     private var effectiveBottomHeight: CGFloat {
         bottomPanelHeight ?? (centerPanelHeight * 0.3)
@@ -38,11 +79,40 @@ struct ContentView: View {
         showDualPane && activePaneIsSecond ? secondFileListVM : fileListVM
     }
 
+    private var rightTopWidgetBinding: Binding<WidgetType> {
+        Binding(
+            get: { WidgetType(rawValue: rightTopWidgetRaw) ?? .info },
+            set: { rightTopWidgetRaw = $0.rawValue }
+        )
+    }
+
+    private var rightBottomWidgetBinding: Binding<WidgetType> {
+        Binding(
+            get: { WidgetType(rawValue: rightBottomWidgetRaw) ?? .preview },
+            set: { rightBottomWidgetRaw = $0.rawValue }
+        )
+    }
+
+    private var bottomPanelWidgetBinding: Binding<WidgetType> {
+        Binding(
+            get: { WidgetType(rawValue: bottomPanelWidgetRaw) ?? .terminal },
+            set: { bottomPanelWidgetRaw = $0.rawValue }
+        )
+    }
+
+    private var rightPanelMaxWidth: CGFloat {
+        let sidebarUsed: CGFloat = showLeftSidebar ? CGFloat(leftSidebarWidth) + 5 : 0
+        let centerMin: CGFloat = 400
+        let handleWidth: CGFloat = 5
+        return max(150, totalWidth - sidebarUsed - centerMin - handleWidth)
+    }
+
     var body: some View {
-        HSplitView {
+        HStack(spacing: 0) {
             if showLeftSidebar {
                 SidebarView(viewModel: sidebarVM, selection: $sidebarSelection)
-                    .frame(minWidth: 100, idealWidth: 100, maxWidth: 300)
+                    .frame(width: CGFloat(leftSidebarWidth))
+                VerticalDragHandle(width: $leftSidebarWidth, minWidth: 100, maxWidth: 300, leadingEdge: true)
             }
             VStack(spacing: 0) {
                 GeometryReader { geo in
@@ -76,7 +146,7 @@ struct ContentView: View {
                                     get: { activeVM.selectedItems },
                                     set: { activeVM.selectedItems = $0 }
                                 ),
-                                widgetType: $bottomPanelWidget
+                                widgetType: bottomPanelWidgetBinding
                             )
                             .frame(height: effectiveBottomHeight)
                         }
@@ -90,17 +160,24 @@ struct ContentView: View {
             }
             .frame(minWidth: 400)
             if showRightPanel {
+                VerticalDragHandle(width: $rightPanelWidth, minWidth: 150, maxWidth: rightPanelMaxWidth, leadingEdge: false)
                 RightPanelView(
                     selectedItems: Binding(
                         get: { activeVM.selectedItems },
                         set: { activeVM.selectedItems = $0 }
                     ),
                     currentDirectory: activeVM.currentURL,
-                    topWidget: $rightTopWidget,
-                    bottomWidget: $rightBottomWidget
+                    topWidget: rightTopWidgetBinding,
+                    bottomWidget: rightBottomWidgetBinding,
+                    splitFraction: $rightPanelSplitFraction
                 )
+                .frame(width: min(CGFloat(rightPanelWidth), rightPanelMaxWidth))
             }
         }
+        .background(GeometryReader { geo in
+            Color.clear.onAppear { totalWidth = geo.size.width }
+                .onChange(of: geo.size.width) { _, w in totalWidth = w }
+        })
         .toolbarBackground(Color(red: 0xE5/255.0, green: 0xE5/255.0, blue: 0xE5/255.0), for: .windowToolbar)
         .toolbarBackgroundVisibility(.visible, for: .windowToolbar)
         .toolbar {

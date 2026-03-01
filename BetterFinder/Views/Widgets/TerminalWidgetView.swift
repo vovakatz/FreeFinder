@@ -4,7 +4,7 @@ struct TerminalWidgetView: View {
     let currentDirectory: URL
     @Binding var widgetType: WidgetType
     @State private var session = TerminalSession()
-    @State private var theme: TerminalTheme = .default
+    @AppStorage("terminalTheme") private var theme: TerminalTheme = .default
 
     var body: some View {
         VStack(spacing: 0) {
