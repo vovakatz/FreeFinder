@@ -54,12 +54,28 @@ struct MainContentView: View {
                 onCreateFile: { viewModel.createFile(name: $0) },
                 onRename: { viewModel.renameItem(at: $0, to: $1) },
                 showDeleteConfirmation: $viewModel.showDeleteConfirmation,
-                onDrop: { viewModel.requestMoveItems($0) },
-                onDropIntoFolder: { urls, folder in viewModel.requestMoveItems(urls, destination: folder) },
+                onDrop: { urls, isCopy in
+                    if isCopy {
+                        viewModel.requestCopyItems(urls)
+                    } else {
+                        viewModel.requestMoveItems(urls)
+                    }
+                },
+                onDropIntoFolder: { urls, folder, isCopy in
+                    if isCopy {
+                        viewModel.requestCopyItems(urls, destination: folder)
+                    } else {
+                        viewModel.requestMoveItems(urls, destination: folder)
+                    }
+                },
                 onConfirmMove: { viewModel.confirmMoveItems() },
                 pendingMoveNames: viewModel.pendingMoveNames,
                 pendingMoveDestinationName: viewModel.pendingMoveDestinationName,
                 showMoveConfirmation: $viewModel.showMoveConfirmation,
+                onConfirmCopy: { viewModel.confirmCopyItems() },
+                pendingCopyNames: viewModel.pendingCopyNames,
+                pendingCopyDestinationName: viewModel.pendingCopyDestinationName,
+                showCopyConfirmation: $viewModel.showCopyConfirmation,
                 selection: $viewModel.selectedItems,
                 showNewFolderSheet: $showNewFolderSheet,
                 showNewFileSheet: $showNewFileSheet

@@ -30,12 +30,16 @@ struct FileListView: View {
     var onRename: (URL, String) -> Void = { _, _ in }
     @Binding var showDeleteConfirmation: Bool
 
-    var onDrop: ([URL]) -> Void = { _ in }
-    var onDropIntoFolder: ([URL], URL) -> Void = { _, _ in }
+    var onDrop: ([URL], Bool) -> Void = { _, _ in }
+    var onDropIntoFolder: ([URL], URL, Bool) -> Void = { _, _, _ in }
     var onConfirmMove: () -> Void = {}
     var pendingMoveNames: [String] = []
     var pendingMoveDestinationName: String = ""
     @Binding var showMoveConfirmation: Bool
+    var onConfirmCopy: () -> Void = {}
+    var pendingCopyNames: [String] = []
+    var pendingCopyDestinationName: String = ""
+    @Binding var showCopyConfirmation: Bool
 
     @Binding var selection: Set<FileItem.ID>
     @State private var dateWidth: CGFloat = 150
@@ -89,11 +93,7 @@ struct FileListView: View {
                     Color.clear
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .overlay { ProgressView() }
-                        .dropDestination(for: URL.self) { urls, _ in
-                            guard !urls.isEmpty else { return false }
-                            onDrop(urls)
-                            return true
-                        }
+                        .onDrop(of: [.fileURL], delegate: PaneDropDelegate(onDrop: onDrop))
                 } else if let error = errorMessage {
                     Color.clear
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -111,11 +111,7 @@ struct FileListView: View {
                                 }
                             }
                         }
-                        .dropDestination(for: URL.self) { urls, _ in
-                            guard !urls.isEmpty else { return false }
-                            onDrop(urls)
-                            return true
-                        }
+                        .onDrop(of: [.fileURL], delegate: PaneDropDelegate(onDrop: onDrop))
                 } else if displayItems.isEmpty {
                     Color.clear
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -128,11 +124,7 @@ struct FileListView: View {
                                     .foregroundStyle(.secondary)
                             }
                         }
-                        .dropDestination(for: URL.self) { urls, _ in
-                            guard !urls.isEmpty else { return false }
-                            onDrop(urls)
-                            return true
-                        }
+                        .onDrop(of: [.fileURL], delegate: PaneDropDelegate(onDrop: onDrop))
                 } else {
                     contentView(effWidths: effWidths)
                 }
@@ -161,6 +153,13 @@ struct FileListView: View {
             } message: {
                 let names = pendingMoveNames.joined(separator: ", ")
                 Text("Move \(names) to \"\(pendingMoveDestinationName)\"?")
+            }
+            .alert("Copy Items?", isPresented: $showCopyConfirmation) {
+                Button("Copy") { onConfirmCopy() }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                let names = pendingCopyNames.joined(separator: ", ")
+                Text("Copy \(names) to \"\(pendingCopyDestinationName)\"?")
             }
             .sheet(isPresented: $showNewFolderSheet) {
                 NewItemSheet(title: "New Folder", placeholder: "Folder name") { name in
@@ -216,7 +215,9 @@ struct FileListView: View {
                 onCancelRename: { cancelRename() }
             )
             .listRowInsets(EdgeInsets(top: 2, leading: 4, bottom: 2, trailing: 4))
-            .draggable(displayItem.fileItem.url)
+            .draggable(displayItem.fileItem.url) {
+                FileDragPreview(item: displayItem.fileItem)
+            }
             .itemDropDestination(item: displayItem, onDropIntoFolder: onDropIntoFolder, onDrop: onDrop)
             .tag(displayItem.id)
             .contextMenu {
@@ -275,7 +276,9 @@ struct FileListView: View {
                     .onTapGesture {
                         selection = [displayItem.id]
                     }
-                    .draggable(displayItem.fileItem.url)
+                    .draggable(displayItem.fileItem.url) {
+                        FileDragPreview(item: displayItem.fileItem)
+                    }
                     .itemDropDestination(item: displayItem, onDropIntoFolder: onDropIntoFolder, onDrop: onDrop)
                     .tag(displayItem.id)
                     .contextMenu {
@@ -546,22 +549,104 @@ private class DoubleClickProxy {
     }
 }
 
+private struct FileDragPreview: View {
+    let item: FileItem
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(nsImage: item.icon)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 16, height: 16)
+            Text(item.name)
+                .lineLimit(1)
+                .truncationMode(.middle)
+        }
+        .font(.system(size: 12))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(.background)
+        .cornerRadius(4)
+    }
+}
+
+private struct PaneDropDelegate: DropDelegate {
+    let onDrop: ([URL], Bool) -> Void
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: NSEvent.modifierFlags.contains(.command) ? .copy : .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        let isCopy = NSEvent.modifierFlags.contains(.command)
+        let providers = info.itemProviders(for: [.fileURL])
+        guard !providers.isEmpty else { return false }
+        Task {
+            var urls: [URL] = []
+            for provider in providers {
+                let url: URL? = await withCheckedContinuation { cont in
+                    _ = provider.loadObject(ofClass: NSURL.self) { reading, _ in
+                        cont.resume(returning: reading as? URL)
+                    }
+                }
+                if let url { urls.append(url) }
+            }
+            if !urls.isEmpty {
+                await MainActor.run { onDrop(urls, isCopy) }
+            }
+        }
+        return true
+    }
+}
+
+private struct FolderDropDelegate: DropDelegate {
+    let folderURL: URL
+    let onDropIntoFolder: ([URL], URL, Bool) -> Void
+    @Binding var isTargeted: Bool
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: NSEvent.modifierFlags.contains(.command) ? .copy : .move)
+    }
+
+    func dropEntered(info: DropInfo) { isTargeted = true }
+    func dropExited(info: DropInfo) { isTargeted = false }
+
+    func performDrop(info: DropInfo) -> Bool {
+        let isCopy = NSEvent.modifierFlags.contains(.command)
+        let providers = info.itemProviders(for: [.fileURL])
+        guard !providers.isEmpty else { return false }
+        Task {
+            var urls: [URL] = []
+            for provider in providers {
+                let url: URL? = await withCheckedContinuation { cont in
+                    _ = provider.loadObject(ofClass: NSURL.self) { reading, _ in
+                        cont.resume(returning: reading as? URL)
+                    }
+                }
+                if let url { urls.append(url) }
+            }
+            if !urls.isEmpty {
+                await MainActor.run { onDropIntoFolder(urls, folderURL, isCopy) }
+            }
+        }
+        return true
+    }
+}
+
 private struct FolderDropModifier: ViewModifier {
     let folderURL: URL
-    let onDropIntoFolder: ([URL], URL) -> Void
+    let onDropIntoFolder: ([URL], URL, Bool) -> Void
 
     @State private var isTargeted = false
 
     func body(content: Content) -> some View {
         content
             .background(isTargeted ? Color.gray.opacity(0.35) : Color.clear)
-            .dropDestination(for: URL.self) { urls, _ in
-                guard !urls.isEmpty else { return false }
-                onDropIntoFolder(urls, folderURL)
-                return true
-            } isTargeted: {
-                isTargeted = $0
-            }
+            .onDrop(of: [.fileURL], delegate: FolderDropDelegate(
+                folderURL: folderURL,
+                onDropIntoFolder: onDropIntoFolder,
+                isTargeted: $isTargeted
+            ))
     }
 }
 
@@ -569,8 +654,8 @@ private extension View {
     @ViewBuilder
     func itemDropDestination(
         item: DisplayItem,
-        onDropIntoFolder: @escaping ([URL], URL) -> Void,
-        onDrop: @escaping ([URL]) -> Void
+        onDropIntoFolder: @escaping ([URL], URL, Bool) -> Void,
+        onDrop: @escaping ([URL], Bool) -> Void
     ) -> some View {
         if item.fileItem.isDirectory {
             self.modifier(FolderDropModifier(
@@ -578,31 +663,11 @@ private extension View {
                 onDropIntoFolder: onDropIntoFolder
             ))
         } else {
-            self.dropDestination(for: URL.self) { urls, _ in
-                guard !urls.isEmpty else { return false }
-                onDrop(urls)
-                return true
-            }
+            self.onDrop(of: [.fileURL], delegate: PaneDropDelegate(onDrop: onDrop))
         }
     }
 
-    func paneDropTarget(onDrop: @escaping ([URL]) -> Void) -> some View {
-        self.onDrop(of: [.fileURL], isTargeted: nil) { providers in
-            Task {
-                var urls: [URL] = []
-                for provider in providers {
-                    let url: URL? = await withCheckedContinuation { cont in
-                        _ = provider.loadObject(ofClass: NSURL.self) { reading, _ in
-                            cont.resume(returning: reading as? URL)
-                        }
-                    }
-                    if let url { urls.append(url) }
-                }
-                if !urls.isEmpty {
-                    await MainActor.run { onDrop(urls) }
-                }
-            }
-            return true
-        }
+    func paneDropTarget(onDrop: @escaping ([URL], Bool) -> Void) -> some View {
+        self.onDrop(of: [.fileURL], delegate: PaneDropDelegate(onDrop: onDrop))
     }
 }

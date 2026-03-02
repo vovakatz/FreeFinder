@@ -48,6 +48,13 @@ final class FileListViewModel {
     var pendingMoveNames: [String] { pendingMoveURLs.map { $0.lastPathComponent } }
     var pendingMoveDestinationName: String { (pendingMoveDestination ?? currentURL).lastPathComponent }
 
+    // Copy (drop with Cmd) state
+    var showCopyConfirmation = false
+    var pendingCopyURLs: [URL] = []
+    var pendingCopyDestination: URL?
+    var pendingCopyNames: [String] { pendingCopyURLs.map { $0.lastPathComponent } }
+    var pendingCopyDestinationName: String { (pendingCopyDestination ?? currentURL).lastPathComponent }
+
     // Network auth state
     var showAuthSheet = false
     var pendingMountURL: URL?
@@ -588,5 +595,34 @@ final class FileListViewModel {
         }
         pendingMoveURLs = []
         pendingMoveDestination = nil
+    }
+
+    // MARK: - Drop/Copy operations (Cmd+Drop)
+
+    func requestCopyItems(_ urls: [URL], destination: URL? = nil) {
+        let dest = destination ?? currentURL
+        let toCopy = urls.filter {
+            $0.deletingLastPathComponent().standardizedFileURL != dest.standardizedFileURL
+            && $0.standardizedFileURL != dest.standardizedFileURL
+        }
+        guard !toCopy.isEmpty else { return }
+        pendingCopyURLs = toCopy
+        pendingCopyDestination = dest
+        showCopyConfirmation = true
+    }
+
+    func confirmCopyItems() {
+        let dest = pendingCopyDestination ?? currentURL
+        let fm = FileManager.default
+        for url in pendingCopyURLs {
+            let destURL = dest.appendingPathComponent(url.lastPathComponent)
+            do {
+                try fm.copyItem(at: url, to: destURL)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+        pendingCopyURLs = []
+        pendingCopyDestination = nil
     }
 }
